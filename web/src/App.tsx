@@ -8,6 +8,7 @@ import { ArchSim } from "./modules/arch/ArchSim";
 import { GemEv } from "./modules/gemev/GemEv";
 import { Stargazing } from "./modules/stargazing/Stargazing";
 import { Fishing } from "./modules/fishing/Fishing";
+import { FishingPage } from "./modules/fishingv2/FishingPage";
 import { Drone } from "./modules/drone/Drone";
 import { Lootbug } from "./modules/lootbug/Lootbug";
 import { Items } from "./modules/items/Items";
@@ -24,6 +25,7 @@ type ModuleId =
   | "bombs"
   | "stargazing"
   | "fishing"
+  | "fishingClassic"
   | "drone"
   | "lootbug"
   | "veins"
@@ -140,6 +142,7 @@ export function App() {
         { id: "bombs" as const, label: "Bombs", icon: "sprites/event/gembomb.png" },
         { id: "stargazing" as const, label: "Stargazing", icon: "sprites/stargazing/stargazing.svg" },
         { id: "fishing" as const, label: "Fishing", icon: "https://static.wikitide.net/shminerwiki/f/fb/Fishing_Button.png" },
+        { id: "fishingClassic" as const, label: "Fishing (classic)", icon: "https://static.wikitide.net/shminerwiki/f/fb/Fishing_Button.png" },
         { id: "drone" as const, label: "Drone", icon: "https://static.wikitide.net/shminerwiki/d/d1/Drones_Button.png" },
         { id: "lootbug" as const, label: "Lootbug", icon: "https://static.wikitide.net/shminerwiki/8/86/Lootbug_Default.png" },
         { id: "veins" as const, label: "Veins", icon: "https://static.wikitide.net/shminerwiki/0/04/Stone_Vein.png" },
@@ -340,6 +343,8 @@ export function App() {
       ) : active === "transmuter" ? (
         <Transmuter />
       ) : active === "fishing" ? (
+        <FishingPage />
+      ) : active === "fishingClassic" ? (
         <Fishing />
       ) : active === "overnight" ? (
         <OvernightGains />
