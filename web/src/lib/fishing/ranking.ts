@@ -65,6 +65,10 @@ export type RankedPurchase = {
    * gems / skill points = gems / ctx.gemsPerHour (null if unknown). Skill points are converted at 125 gems each.
    */
   hoursToAfford: number | null;
+  /** Fish costs only: how many of the cost fish you own (0 when no inventory given or non-fish cost). */
+  owned: number;
+  /** Fish costs only: you already own at least the cost amount. */
+  affordableNow: boolean;
   /** Fish costs only: hours if the rod and all drones were moved to the cost fish's dock (null if that dock is locked). */
   hoursIfFocused: number | null;
   /** Gain of total fish/h in percent (>= 0 for structural purchases, includes lookahead value). */
@@ -85,6 +89,13 @@ export type RankedPurchase = {
   basis: "top-dock" | "fish-dock";
 };
 
+/** Optional inputs of {@link rankPurchases}. */
+export type RankOptions = {
+  /** Owned fish counts by fish id. Fish costs only count the missing amount (max(0, cost - owned)). */
+  ownedFish?: Record<string, number>;
+};
+
+const MIN_RANK_HOURS = 1 / 60;
 const UNLOCK_LOOKAHEAD_COUNT = 3;
 const STRUCTURAL_IDS = new Set<string>(["upgrade_boat", "upgrade_t2_boat"]);
 
@@ -139,6 +150,7 @@ function evalUpgrade(
   baseTotal: number,
   rates: Record<string, number>,
   lookahead: boolean,
+  ownedFish?: Record<string, number>,
 ): RankedPurchase | null {
   const costs = UPGRADE_COSTS[def.id];
   if (!costs?.length) return null;
@@ -161,7 +173,7 @@ function evalUpgrade(
     const bestNext = suggestDronePlacement(next, ctx, { kind: "max-fish" }).totalFishPerHour;
     gainPct = Math.max(0, gainPct, pct(bestNext, bestBase));
     if (lookahead) {
-      const la = unlockLookahead(state, next, ctx);
+      const la = unlockLookahead(state, next, ctx, ownedFish);
       gainPct += la.gainPct;
       extraHours = la.hours;
       unlocks = la.names;
@@ -172,9 +184,12 @@ function evalUpgrade(
   }
 
   const rate = rates[entry.fishId] ?? 0;
-  const ownHours = rate > 0 ? entry.amount / rate : null;
+  const owned = Math.max(0, ownedFish?.[entry.fishId] ?? 0);
+  const remaining = Math.max(0, entry.amount - owned);
+  const affordableNow = remaining <= 0;
+  const ownHours = affordableNow ? 0 : rate > 0 ? remaining / rate : null;
   const focusRate = fishRateWhenFocused(state, ctx, entry.fishId);
-  const hoursIfFocused = focusRate > 0 ? entry.amount / focusRate : null;
+  const hoursIfFocused = affordableNow ? 0 : focusRate > 0 ? remaining / focusRate : null;
   const bl = boatLevels(state);
   const unlockedDocks = getUnlockedDockIds(bl.boat, bl.t2);
   if (ownHours == null) {
@@ -189,11 +204,14 @@ function evalUpgrade(
     fromLevel: lvl,
     toLevel: lvl + 1,
     cost: { currency: "fish", fishId: entry.fishId, amount: entry.amount },
+    owned,
+    affordableNow,
     hoursToAfford,
     hoursIfFocused,
     gainPct,
-    gainPctPerHour: hoursToAfford != null && hoursToAfford + extraHours > 0 ? gainPct / (hoursToAfford + extraHours) : null,
-    gainPctPerHourFocused: hoursIfFocused != null && hoursIfFocused + extraHours > 0 ? gainPct / (hoursIfFocused + extraHours) : null,
+    // Already affordable: hours are 0, so rank as if it took a minute (keeps the ratio finite and the row near the top).
+    gainPctPerHour: hoursToAfford != null ? gainPct / Math.max(hoursToAfford + extraHours, MIN_RANK_HOURS) : null,
+    gainPctPerHourFocused: hoursIfFocused != null ? gainPct / Math.max(hoursIfFocused + extraHours, MIN_RANK_HOURS) : null,
     gainPctPerKGem: null,
     unlocks,
     note,
@@ -211,6 +229,7 @@ function unlockLookahead(
   state: FishingState,
   next: FishingState,
   ctx: FishingContext,
+  ownedFish?: Record<string, number>,
 ): { gainPct: number; hours: number; names: string[] } {
   const before = boatLevels(state);
   const after = boatLevels(next);
@@ -222,13 +241,14 @@ function unlockLookahead(
   for (const def of ALL_UPGRADE_DEFS) {
     if (STRUCTURAL_IDS.has(def.id)) continue;
     if (isAvailable(def, before.boat, before.t2) || !isAvailable(def, after.boat, after.t2)) continue;
-    const r = evalUpgrade(next, ctx, def, refNext, baseNext, ratesNext, false);
+    const r = evalUpgrade(next, ctx, def, refNext, baseNext, ratesNext, false, ownedFish);
     if (!r || r.gainPct <= 0) continue;
     const hours = r.hoursIfFocused ?? r.hoursToAfford;
-    if (hours == null || hours <= 0) continue;
+    if (hours == null || hours < 0) continue;
     found.push({ name: `${def.name} L${r.toLevel} (+${r.gainPct.toFixed(2)}%)`, gainPct: r.gainPct, hours });
   }
-  found.sort((a, b) => b.gainPct / b.hours - a.gainPct / a.hours);
+  const eff = (h: number) => Math.max(h, MIN_RANK_HOURS);
+  found.sort((a, b) => b.gainPct / eff(b.hours) - a.gainPct / eff(a.hours));
   const top = found.slice(0, UNLOCK_LOOKAHEAD_COUNT);
 
   const names = top.map((t) => t.name);
@@ -269,6 +289,8 @@ function gemRanked(
     fromLevel,
     toLevel: fromLevel + 1,
     cost,
+    owned: 0,
+    affordableNow: false,
     hoursToAfford: hours,
     hoursIfFocused: null,
     gainPct,
@@ -287,7 +309,7 @@ function gemRanked(
  * Nothing is silently dropped: purchases whose cost fish you do not currently farm are returned with
  * `hoursToAfford: null` and a `note`; purchases already at max level are omitted.
  */
-export function rankPurchases(state: FishingState, ctx: FishingContext = {}): RankedPurchase[] {
+export function rankPurchases(state: FishingState, ctx: FishingContext = {}, opts: RankOptions = {}): RankedPurchase[] {
   const out: RankedPurchase[] = [];
   const { boat, t2 } = boatLevels(state);
   const refDock = getTopUnlockedDockId(state);
@@ -297,7 +319,7 @@ export function rankPurchases(state: FishingState, ctx: FishingContext = {}): Ra
   // Fish upgrades
   for (const def of ALL_UPGRADE_DEFS) {
     if (!isAvailable(def, boat, t2)) continue;
-    const r = evalUpgrade(state, ctx, def, refDock, baseTotal, snapshot.fishRates, true);
+    const r = evalUpgrade(state, ctx, def, refDock, baseTotal, snapshot.fishRates, true, opts.ownedFish);
     if (r) out.push(r);
   }
 

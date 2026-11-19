@@ -3,6 +3,7 @@ import { Tooltip } from "../../components/Tooltip";
 import { fishTrack, gemTrack, type RankedPurchase } from "../../lib/fishing/ranking";
 import type { FishingSectionProps } from "./types";
 import { getDockIdForFish } from "../../lib/fishing/model";
+import { formatCostCompact } from "../../lib/format";
 import { DOCKS } from "../../lib/fishing/constants";
 import { costText, fishIcon, fmtHours, fmtPct } from "./buynext/helpers";
 import "./buynext.css";
@@ -15,7 +16,7 @@ function valueOf(p: RankedPurchase, tab: Tab): number {
   return p.gainPctPerHour ?? p.gainPctPerKGem ?? 0;
 }
 
-export function BuyNext({ state, setState, ranked, gemsPerHour }: FishingSectionProps) {
+export function BuyNext({ state, setState, ranked, gemsPerHour, setInventory }: FishingSectionProps) {
   const [tab, setTab] = useState<Tab>("fish");
   const [all, setAll] = useState(false);
 
@@ -35,6 +36,15 @@ export function BuyNext({ state, setState, ranked, gemsPerHour }: FishingSection
       if (p.kind === "skill") return { ...s, skillTreeLevels: { ...s.skillTreeLevels, [p.id]: p.toLevel } };
       return s;
     });
+    if (p.cost.currency === "fish" && p.cost.fishId) {
+      const id = p.cost.fishId;
+      const cost = p.cost.amount;
+      setInventory((inv) => {
+        const have = inv.counts[id] ?? 0;
+        if (have <= 0) return inv;
+        return { counts: { ...inv.counts, [id]: Math.max(0, have - cost) }, updatedAt: new Date().toISOString() };
+      });
+    }
   };
 
   return (
@@ -103,7 +113,9 @@ export function BuyNext({ state, setState, ranked, gemsPerHour }: FishingSection
                   {costText(p)}
                 </span>
                 <span className="fv2BuyTime">
-                  {hours != null ? (
+                  {p.affordableNow ? (
+                    <span className="fv2Chip fv2Good">Ready to buy</span>
+                  ) : hours != null ? (
                     fmtHours(hours)
                   ) : p.cost.currency === "fish" && p.hoursIfFocused != null ? (
                     <span className="fv2Warn" title="Time if the rod and all drones fish this dock">
@@ -116,6 +128,16 @@ export function BuyNext({ state, setState, ranked, gemsPerHour }: FishingSection
                   )}
                 </span>
               </div>
+              {p.cost.currency === "fish" && p.owned > 0 && !p.affordableNow && (
+                <div className="fv2BuyHave">
+                  <span className="fv2Muted">
+                    You have {formatCostCompact(p.owned)} / {formatCostCompact(p.cost.amount)}
+                  </span>
+                  <div className="fv2Bar" role="img" aria-label={`Owned ${Math.round((p.owned / p.cost.amount) * 100)} percent of the cost`}>
+                    <div className="fv2BarFill" style={{ width: `${Math.min(100, (p.owned / p.cost.amount) * 100)}%` }} />
+                  </div>
+                </div>
+              )}
               <div className="fv2BuyBar" title="Value relative to the best row">
                 <div style={{ width: `${Math.min(100, (valueOf(p, tab) / best) * 100)}%` }} />
               </div>

@@ -1,0 +1,13 @@
+.fv2InvDock { display: flex; flex-direction: column; gap: 8px; }
+.fv2InvDock > summary { cursor: pointer; font-weight: 600; min-height: 32px; display: flex; align-items: center; }
+.fv2InvGrid { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 8px; }
+@media (min-width: 420px) { .fv2InvGrid { grid-template-columns: 1fr 1fr; } }
+@media (min-width: 720px) { .fv2InvGrid { grid-template-columns: repeat(4, 1fr); } }
+.fv2InvFish { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.fv2InvFish img { flex: none; }
+.fv2InvName { flex: 1 1 auto; min-width: 0; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fv2InvInput {
+  flex: 0 0 90px; width: 90px; min-height: 40px; padding: 4px 6px; font: inherit;
+  background: var(--bg); color: var(--text); border: 1px solid var(--border);
+}
+.fv2InvFoot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; }

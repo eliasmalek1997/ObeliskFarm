@@ -38,13 +38,24 @@ export function sushiYield(docks: DockSnapshot[], ticks: number): SushiYield {
   return { totalFish, perFish, fills };
 }
 
-export type NextUpgradeTarget = { purchase: RankedPurchase; fishId: string; amount: number; label: string };
+export type NextUpgradeTarget = {
+  purchase: RankedPurchase;
+  fishId: string;
+  /** Full cost of the upgrade. */
+  amount: number;
+  /** Fish of that kind already owned. */
+  owned: number;
+  /** Still missing: max(0, amount - owned). Sushi coverage is measured against this. */
+  remaining: number;
+  label: string;
+};
 
 /** Top fish-track purchase that costs a specific fish. */
 export function nextUpgradeTarget(ranked: RankedPurchase[]): NextUpgradeTarget | null {
   const p = fishTrack([...ranked]).find((x) => x.cost.currency === "fish" && !!x.cost.fishId);
   if (!p) return null;
-  return { purchase: p, fishId: p.cost.fishId!, amount: p.cost.amount, label: `${p.name} L${p.toLevel}` };
+  const owned = Math.max(0, p.owned ?? 0);
+  return { purchase: p, fishId: p.cost.fishId!, amount: p.cost.amount, owned, remaining: Math.max(0, p.cost.amount - owned), label: `${p.name} L${p.toLevel}` };
 }
 
 /** Fraction (can exceed 1) of the target's cost covered by the fish. */

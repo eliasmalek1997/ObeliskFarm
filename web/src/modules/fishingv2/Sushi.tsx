@@ -37,7 +37,7 @@ function Yield({ y, targetFishId, targetAmount, targetLabel }: { y: SushiYield; 
             <div className="fv2BarFill" style={{ width: `${Math.min(100, cov * 100)}%` }} />
           </div>
           <div className="fv2Muted" style={{ fontSize: 13 }}>
-            covers {(cov * 100).toFixed(cov < 0.1 ? 1 : 0)}% of the {fmt(targetAmount!)} {name} for {targetLabel}
+            covers {(cov * 100).toFixed(cov < 0.1 ? 1 : 0)}% of the {fmt(targetAmount!)} {name} still missing for {targetLabel}
           </div>
         </>
       )}
@@ -69,7 +69,7 @@ export function Sushi(props: FishingSectionProps) {
   const bestT = target && best ? best.perFish[target.fishId] ?? 0 : 0;
   const farms = !!target && (snapshot.fishRates[target.fishId] ?? 0) > 0 && curT >= bestT * 0.999;
   const advice = sushiAdvice({ hasTarget: !!target, currentFarmsTarget: farms, currentTargetFish: curT, bestTargetFish: bestT });
-  const tIds = target ? { targetFishId: target.fishId, targetAmount: target.amount, targetLabel: target.label } : {};
+  const tIds = target ? { targetFishId: target.fishId, targetAmount: target.remaining, targetLabel: target.label } : {};
 
   return (
     <section className="fv2Section" aria-label="Sushi">

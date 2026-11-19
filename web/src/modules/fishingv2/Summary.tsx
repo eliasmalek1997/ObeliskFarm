@@ -32,9 +32,10 @@ export function Summary({ snapshot, ranked, setState }: FishingSectionProps) {
   if (top) {
     const lvl = top.structural ? "" : ` L${top.toLevel}`;
     const hrs = top.hoursToAfford ?? top.hoursIfFocused;
-    const when =
-      hrs != null
-        ? `~${fmtHours(hrs).replace("~", "")} of ${fishName(top.cost.fishId)}`
+    const when = top.affordableNow
+      ? `you already have the ${fishName(top.cost.fishId)}`
+      : hrs != null
+        ? `~${fmtHours(hrs).replace("~", "")} more ${fishName(top.cost.fishId)}`
         : `costs ${fishName(top.cost.fishId)}`;
     takeaway = top.structural
       ? `Your best next step: ${top.name} (unlocks ${(top.unlocks ?? []).slice(0, 2).join(", ") || "more upgrades"}; ${when}).`

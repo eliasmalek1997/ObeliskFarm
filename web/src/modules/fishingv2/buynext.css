@@ -68,3 +68,5 @@
   gap: 6px 10px;
   margin-top: 8px;
 }
+
+.fv2BuyHave { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
