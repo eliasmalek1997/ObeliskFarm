@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import { Tooltip } from "../../components/Tooltip";
 import { fishTrack, gemTrack, type RankedPurchase } from "../../lib/fishing/ranking";
 import type { FishingSectionProps } from "./types";
+import { getDockIdForFish } from "../../lib/fishing/model";
+import { DOCKS } from "../../lib/fishing/constants";
 import { costText, fishIcon, fmtHours, fmtPct } from "./buynext/helpers";
 import "./buynext.css";
 
@@ -103,6 +105,10 @@ export function BuyNext({ state, setState, ranked, gemsPerHour }: FishingSection
                 <span className="fv2BuyTime">
                   {hours != null ? (
                     fmtHours(hours)
+                  ) : p.cost.currency === "fish" && p.hoursIfFocused != null ? (
+                    <span className="fv2Warn" title="Time if the rod and all drones fish this dock">
+                      {fmtHours(p.hoursIfFocused)} if you fish {DOCKS.find((d) => d.id === getDockIdForFish(p.cost.fishId ?? ""))?.name ?? "its dock"}
+                    </span>
                   ) : p.cost.currency === "fish" ? (
                     <span className="fv2Warn">not farmed yet</span>
                   ) : (

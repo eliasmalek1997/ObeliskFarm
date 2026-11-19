@@ -1,4 +1,7 @@
+import { useMemo } from "react";
 import { Tooltip } from "../../components/Tooltip";
+import { loadJson } from "../../lib/storage";
+import type { FishingStatsSnapshot } from "../../lib/fishing/model";
 import { formatInt } from "../../lib/format";
 import { fishTrack } from "../../lib/fishing/ranking";
 import type { DockLimit } from "../../lib/fishing/model";
@@ -12,13 +15,16 @@ function bottleneck(limit: DockLimit, rarestPct: number | undefined): string {
     return `Needs more power${p}`;
   }
   if (limit === "ticks") return "Maxed on catch. Faster ticks help here";
+  if (limit === "idle") return "Not fished: no rod or drones here";
   return "Locked";
 }
 
 export function Summary({ snapshot, ranked }: FishingSectionProps) {
   const st = snapshot.stats;
   const top = fishTrack([...ranked])[0];
-  const docks = snapshot.docks.filter((d) => d.unlocked);
+  const docks = snapshot.docks.filter((d) => d.unlocked && d.limitedBy !== "idle");
+  const idleDocks = snapshot.docks.filter((d) => d.limitedBy === "idle");
+  const check = useMemo(() => compareWithGame(st), [st]);
 
   let takeaway = "Nothing left to buy with fish right now.";
   if (top) {
@@ -65,6 +71,10 @@ export function Summary({ snapshot, ranked }: FishingSectionProps) {
           );
         })}
       </div>
+      {idleDocks.length > 0 && (
+        <div className="fv2Muted fv2SumIdle">Not fished right now: {idleDocks.map((d) => d.name).join(", ")}. See Docks below to move drones.</div>
+      )}
+      {check && <GameCheck rows={check} />}
       <span className="fv2Muted fv2SumFoot">
         Per-dock bottleneck{" "}
         <Tooltip
@@ -78,5 +88,54 @@ export function Summary({ snapshot, ranked }: FishingSectionProps) {
         />
       </span>
     </section>
+  );
+}
+
+/** Written by Import stats: the game's own fishing totals, used to spot inputs the export can't fill in. */
+const INGAME_KEY = "obeliskfarm:web:fishing_ingame.json";
+type InGame = { version?: string | null; rodPower?: number; droneCap?: number; droneMulti?: number; incomeMulti?: number };
+type CheckRow = { label: string; game: number; here: number; ok: boolean; hint: string };
+
+function compareWithGame(st: FishingStatsSnapshot): CheckRow[] | null {
+  const g = loadJson<InGame>(INGAME_KEY);
+  if (!g) return null;
+  const rows: CheckRow[] = [];
+  const add = (label: string, game: number | undefined, here: number, hint: string) => {
+    if (typeof game !== "number" || !Number.isFinite(game) || game === 0) return;
+    rows.push({ label, game, here, ok: Math.abs(here - game) / Math.abs(game) < 0.005, hint });
+  };
+  add("Rod power", g.rodPower, st.rodPowerExact, "Check the Fishing Rod card, Half-Way Bundle and skills in Your setup.");
+  add("Drone cap", g.droneCap, st.droneCapExact, "Check the Fishing With Friends skill and drone upgrades.");
+  add("Drone multiplier", g.droneMulti, st.droneMulti, "Check drone enhancements and the Angler bundle.");
+  add("Fish income multiplier", g.incomeMulti, st.incomeMulti, "Check fish multiplier enhancements, Super Stars and idols.");
+  return rows.length ? rows : null;
+}
+
+function fmtNum(n: number): string {
+  return Math.abs(n) >= 100 ? n.toFixed(1) : n.toFixed(3);
+}
+
+function GameCheck({ rows }: { rows: CheckRow[] }) {
+  const bad = rows.filter((r) => !r.ok);
+  return (
+    <div className={`fv2Card fv2SumCheck ${bad.length ? "fv2SumCheckBad" : ""}`}>
+      <b>{bad.length ? "Some numbers don't match your game yet" : "Matches your game ✓"}</b>
+      <div className="fv2Muted">
+        {bad.length
+          ? "Your stats export doesn't include skills, bundles or every card, so set those in Your setup until these match."
+          : "The page reproduces the fishing stats from your last import."}
+      </div>
+      <ul className="fv2SumCheckList">
+        {rows.map((r) => (
+          <li key={r.label}>
+            <span>{r.label}</span>
+            <span className={r.ok ? "fv2Good" : "fv2Warn"}>
+              here {fmtNum(r.here)} · game {fmtNum(r.game)}
+            </span>
+            {!r.ok && <span className="fv2Muted fv2SumCheckHint">{r.hint}</span>}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

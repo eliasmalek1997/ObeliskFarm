@@ -358,6 +358,20 @@ function importFishing(stats: ImportedStats): { report: ModuleReport | null; use
     }
   }
 
+  // The game's own totals, so the Fishing page can show which inputs still differ.
+  const ingame = {
+    rodPower: c.num("fishing_rod_power"),
+    droneCap: c.num("fishing_drone_capacity"),
+    droneMulti: c.num("fishing_drone_multiplier"),
+    incomeMulti: c.num("fishing_income_multi"),
+  };
+  if (Object.values(ingame).some((v) => v !== undefined)) {
+    saveJson(`${PREFIX}fishing_ingame.json`, ingame);
+    ["fishing_rod_power", "fishing_drone_capacity", "fishing_drone_multiplier", "fishing_income_multi"].forEach((k) => {
+      if (k in stats) c.used.add(k);
+    });
+  }
+
   if (!changed) return { report: null, used: c.used, notes };
   saveJson(KEYS.fishing, saved);
   return { report: { module: "Fishing", applied: c.lines }, used: c.used, notes };

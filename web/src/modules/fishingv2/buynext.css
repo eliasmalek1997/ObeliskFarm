@@ -32,3 +32,32 @@
 .fv2BuyMark, .fv2BuyMore { align-self: flex-start; background: transparent; color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; cursor: pointer; font: inherit; font-size: 13px; }
 .fv2BuyMore { margin-top: 10px; }
 .fv2BuyMark:hover, .fv2BuyMore:hover { border-color: var(--accent); }
+
+.fv2SumIdle {
+  margin-top: 8px;
+  font-size: 0.85rem;
+}
+.fv2SumCheck {
+  margin-top: 10px;
+  font-size: 0.9rem;
+}
+.fv2SumCheckBad {
+  border-color: #d9a400;
+}
+.fv2SumCheckList {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.fv2SumCheckList li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2px 8px;
+}
+.fv2SumCheckHint {
+  flex-basis: 100%;
+  font-size: 0.8rem;
+}

@@ -445,7 +445,8 @@ export type FishSnapshot = {
   perHour: number;
 };
 
-export type DockLimit = "power" | "ticks" | "locked";
+/** "idle": unlocked but no rod or drones here, so nothing is fished. */
+export type DockLimit = "power" | "ticks" | "locked" | "idle";
 
 export type DockSnapshot = {
   dockId: DockId;
@@ -518,7 +519,13 @@ export function computeFishingSnapshot(state: FishingState, ctx: FishingContext 
     const fishPerHour = fish.reduce((a, f) => a + f.perHour, 0);
     total += fishPerHour;
     const last = fish[fish.length - 1]!;
-    const limitedBy: DockLimit = !isUnlocked ? "locked" : last.catchChancePct < 100 ? "power" : "ticks";
+    const limitedBy: DockLimit = !isUnlocked
+      ? "locked"
+      : fishPerHour <= 0
+        ? "idle"
+        : last.catchChancePct < 100
+          ? "power"
+          : "ticks";
     return {
       dockId: dock.id,
       name: dock.name,

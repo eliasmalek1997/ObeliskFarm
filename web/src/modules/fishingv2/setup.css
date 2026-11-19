@@ -1,0 +1,23 @@
+.fv2SetupTip { margin: 0 0 10px; font-size: 13px; }
+.fv2SetupTabs { display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--border); margin-bottom: 10px; -webkit-overflow-scrolling: touch; }
+.fv2SetupTab { flex: 0 0 auto; padding: 8px 12px; background: none; border: 0; border-bottom: 2px solid transparent; color: var(--muted); font: inherit; font-size: 14px; cursor: pointer; white-space: nowrap; }
+.fv2SetupTab[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
+.fv2SetupGroup { margin-bottom: 14px; }
+.fv2SetupGroupTitle { margin: 6px 0 2px; font-size: 14px; }
+.fv2SetupBlurb { margin: 0 0 4px; font-size: 12px; }
+.fv2SetupRow { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.fv2SetupRow.fv2SetupLocked { opacity: 0.55; }
+.fv2SetupLabel { display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1 1 180px; font-size: 14px; }
+.fv2SetupIcon { width: 24px; height: 24px; object-fit: contain; flex: none; }
+.fv2SetupName { overflow-wrap: anywhere; }
+.fv2SetupNote { font-size: 12px; }
+.fv2SetupCtl { display: flex; align-items: center; gap: 4px; flex: 0 0 auto; }
+.fv2SetupBtn { min-width: 34px; height: 34px; padding: 0 8px; border: 1px solid var(--border); background: var(--panel); color: var(--text); font: inherit; font-size: 14px; cursor: pointer; }
+.fv2SetupBtn:disabled { opacity: 0.4; cursor: default; }
+.fv2SetupBtn.fv2SetupOn { background: var(--accent); border-color: var(--accent); color: #fff; }
+.fv2SetupMax { font-size: 12px; }
+.fv2SetupInput { width: 64px; height: 34px; padding: 0 6px; text-align: center; border: 1px solid var(--border); background: var(--panel); color: var(--text); font: inherit; font-size: 14px; }
+.fv2SetupSeg .fv2SetupBtn { padding: 0 10px; }
+.fv2SetupFishGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0 16px; }
+.fv2SetupBulk { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; font-size: 13px; }
+@media (max-width: 520px) { .fv2SetupCtl { width: 100%; justify-content: flex-end; } }
