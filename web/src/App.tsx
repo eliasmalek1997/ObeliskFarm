@@ -15,6 +15,7 @@ import { Bombs } from "./modules/bombs/Bombs";
 import { OvernightGains } from "./modules/overnight/OvernightGains";
 import { Veins } from "./modules/veins/Veins";
 import { Transmuter } from "./modules/transmuter/Transmuter";
+import { ImportStats } from "./components/ImportStats";
 import "./modules/overnight/overnight.css";
 type ModuleId =
   | "event"
@@ -62,6 +63,9 @@ function MoonStarsIcon() {
 export function App() {
   const [active, setActive] = useState<ModuleId>("gemev");
   const [navExpanded, setNavExpanded] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  /** Bumped after a stats import; used as a React key so the open module remounts and re-reads its save. */
+  const [importNonce, setImportNonce] = useState(0);
   const [headerMinimized, setHeaderMinimized] = useState(() => loadJson<boolean>(HEADER_MINIMIZED_KEY) ?? false);
   const [showBackup, setShowBackup] = useState(() => loadJson<boolean>(SHOW_BACKUP_KEY) ?? false);
   const [backupIntervalMin, setBackupIntervalMin] = useState(() => {
@@ -189,6 +193,12 @@ export function App() {
               </span>
             </button>
           ))}
+          <button type="button" className="navTile navTileImport" onClick={() => setImportOpen(true)}>
+            <span className="navEmoji" aria-hidden="true">
+              📋
+            </span>
+            <span className="navTileLabel">Import stats</span>
+          </button>
         </div>
         <button
           type="button"
@@ -212,6 +222,9 @@ export function App() {
         </button>
       </div>
 
+      {importOpen ? <ImportStats onClose={() => setImportOpen(false)} onImported={() => setImportNonce((n) => n + 1)} /> : null}
+
+      <div key={importNonce} className="moduleHost" style={{ display: "contents" }}>
       {active === "about" ? (
         <div className="aboutSection">
           <h2 className="aboutTitle">About this tool</h2>
@@ -333,6 +346,7 @@ export function App() {
       ) : (
         <Stargazing />
       )}
+      </div>
     </div>
   );
 }
