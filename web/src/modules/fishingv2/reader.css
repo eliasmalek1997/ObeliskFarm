@@ -1,0 +1,36 @@
+.fv2Reader { display: grid; gap: 10px; min-width: 0; }
+.fv2ReaderBtn {
+  min-height: 44px; padding: 0 14px; font: inherit; cursor: pointer;
+  background: var(--panel); color: var(--text); border: 1px solid var(--border);
+}
+.fv2ReaderBtnPrimary { border-color: var(--good); color: var(--good); }
+.fv2ReaderBtn:disabled { opacity: 0.5; cursor: default; }
+.fv2ReaderActions { display: flex; flex-wrap: wrap; gap: 8px; }
+.fv2ReaderFile { display: none; }
+.fv2ReaderRow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.fv2ReaderSelect, .fv2ReaderInput {
+  min-height: 40px; font: inherit; color: var(--text); background: var(--panel);
+  border: 1px solid var(--border); padding: 0 8px; min-width: 0;
+}
+.fv2ReaderGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+@media (min-width: 560px) { .fv2ReaderGrid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.fv2ReaderCell {
+  display: grid; gap: 4px; padding: 6px; border: 1px solid var(--border);
+  min-width: 0; justify-items: center; text-align: center;
+}
+.fv2ReaderCellLow { border-color: #d9a400; background: rgba(217, 164, 0, 0.12); }
+.fv2ReaderCellOff { opacity: 0.5; }
+.fv2ReaderIcon { width: 40px; height: 40px; object-fit: contain; image-rendering: pixelated; }
+.fv2ReaderName { font-size: 12px; line-height: 1.2; }
+.fv2ReaderInput { width: 100%; text-align: center; box-sizing: border-box; }
+.fv2ReaderRowLabel { grid-column: 1 / -1; font-size: 12px; }
+
+/* Keep Apply/Cancel reachable while scrolling the review grid on phones. */
+.fv2ReaderActionsSticky {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  padding: 8px 0;
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+}

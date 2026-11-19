@@ -98,6 +98,10 @@ body {
   .topNav:not(.navExpanded) .topNavButtons {
     display: none;
   }
+  /* With the menu collapsed behind the toggle, "Minimize Menu" has nothing to minimize and overlapped the About button. */
+  .topNav:not(.navExpanded) .topNavMinimize {
+    display: none;
+  }
   .topNavButtons {
     width: 100%;
   }
