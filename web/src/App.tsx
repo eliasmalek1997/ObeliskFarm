@@ -9,6 +9,7 @@ import { GemEv } from "./modules/gemev/GemEv";
 import { Stargazing } from "./modules/stargazing/Stargazing";
 import { Fishing } from "./modules/fishing/Fishing";
 import { FishingPage } from "./modules/fishingv2/FishingPage";
+import { GemsPage } from "./modules/gems/GemsPage";
 import { Drone } from "./modules/drone/Drone";
 import { Lootbug } from "./modules/lootbug/Lootbug";
 import { Items } from "./modules/items/Items";
@@ -22,6 +23,7 @@ type ModuleId =
   | "event"
   | "arch"
   | "gemev"
+  | "gems"
   | "bombs"
   | "stargazing"
   | "fishing"
@@ -138,6 +140,7 @@ export function App() {
       [
         { id: "event" as const, label: "Event Simulator", icon: "sprites/event/event_button.png" },
         { id: "arch" as const, label: "Archaeology Simulator", icon: "sprites/archaeology/archaeology.png" },
+        { id: "gems" as const, label: "Gem Farming", icon: "sprites/common/gem.png" },
         { id: "gemev" as const, label: "Gem EV Calculator", icon: "sprites/common/gem.png" },
         { id: "bombs" as const, label: "Bombs", icon: "sprites/event/gembomb.png" },
         { id: "stargazing" as const, label: "Stargazing", icon: "sprites/stargazing/stargazing.svg" },
@@ -324,6 +327,8 @@ export function App() {
             </div>
           )}
         </div>
+      ) : active === "gems" ? (
+        <GemsPage />
       ) : active === "gemev" ? (
         <GemEv />
       ) : active === "bombs" ? (
