@@ -27,3 +27,7 @@
 .fv2DockBarMark { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--text); }
 .fv2DockBarLabel { grid-column: 2 / 4; font-size: 12px; color: var(--muted); margin-top: -1px; }
 .fv2DockLocked { font-size: 14px; }
+.fv2DockTarget { margin: -4px 0 10px; font-size: 13px; overflow-wrap: anywhere; }
+.fv2DockToolbar .fv2DockBtn { flex: 1 1 140px; }
+.fv2DockCap { flex-basis: 100%; margin-left: 0; }
+.fv2DockStep { padding: 0 6px; }

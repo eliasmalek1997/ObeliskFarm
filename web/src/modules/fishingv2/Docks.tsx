@@ -1,7 +1,8 @@
 import { useState } from "react";
 import type { FishingSectionProps } from "./types";
 import { ALL_FISH, dockIconUrl, fishIconUrl, getFishById, type DockId } from "../../lib/fishing";
-import { suggestDronePlacement, type DockSnapshot, type PlacementSuggestion } from "../../lib/fishing/model";
+import { suggestDronePlacement, getDockIdForFish, type DockSnapshot, type PlacementSuggestion } from "../../lib/fishing/model";
+import { nextUpgradeTarget } from "../../lib/fishing/sushi";
 import { Tooltip } from "../../components/Tooltip";
 import "./docks.css";
 
@@ -35,7 +36,11 @@ const LIMIT_CHIP: Record<DockSnapshot["limitedBy"], { text: string; cls: string;
 };
 
 export function Docks(props: FishingSectionProps) {
-  const { state, setState, snapshot, ctx } = props;
+  const { state, setState, snapshot, ctx, ranked } = props;
+  const target = nextUpgradeTarget(ranked);
+  const targetFish = target ? getFishById(target.fishId) : undefined;
+  const targetDock = target ? getDockIdForFish(target.fishId) : undefined;
+  const targetDockName = snapshot.docks.find((d) => d.dockId === targetDock)?.name;
   const [farmFish, setFarmFish] = useState<string>("");
   const unlocked = snapshot.docks.filter((d) => d.unlocked);
   const locked = snapshot.docks.filter((d) => !d.unlocked);
@@ -49,6 +54,8 @@ export function Docks(props: FishingSectionProps) {
     setFarmFish(fishId);
     if (fishId) apply(suggestDronePlacement(state, ctx, { kind: "farm-fish", fishId }));
   };
+  const bestForNext = () => target && apply(suggestDronePlacement(state, ctx, { kind: "farm-fish", fishId: target.fishId }));
+  const clearAll = () => setState((st) => ({ ...st, dronesPerDock: Object.fromEntries(Object.keys(st.dronesPerDock ?? {}).map((k) => [k, 0])) as typeof st.dronesPerDock }));
   const setDrones = (id: DockId, n: number) =>
     setState((st) => ({ ...st, dronesPerDock: { ...st.dronesPerDock, [id]: Math.max(0, n) } }));
   const setRod = (id: DockId) => setState((st) => ({ ...st, activeDockId: id }));
@@ -66,6 +73,12 @@ export function Docks(props: FishingSectionProps) {
         <button type="button" className="fv2DockBtn fv2DockBtnPrimary" onClick={() => suggest("max-fish")}>
           Suggest: most fish
         </button>
+        <button type="button" className="fv2DockBtn fv2DockBtnPrimary" disabled={!target} onClick={bestForNext}>
+          Best for next upgrade
+        </button>
+        <button type="button" className="fv2DockBtn" disabled={used <= 0} onClick={clearAll}>
+          Clear all drones
+        </button>
         <select className="fv2DockSelect" aria-label="Farm a fish" value={farmFish} onChange={(e) => farm(e.target.value)}>
           <option value="">Farm a fish…</option>
           {farmOptions.map((f) => (
@@ -79,6 +92,12 @@ export function Docks(props: FishingSectionProps) {
           {used < cap ? ` (${cap - used} idle)` : ""}
         </span>
       </div>
+
+      <p className="fv2Muted fv2DockTarget">
+        {target
+          ? `Best for next upgrade targets ${target.label} → ${targetFish?.name ?? target.fishId}${targetDockName ? ` (${targetDockName})` : ""}`
+          : "Best for next upgrade: no fish-priced upgrade queued."}
+      </p>
 
       <div className="fv2DockList">
         {unlocked.map((d) => {
@@ -103,6 +122,9 @@ export function Docks(props: FishingSectionProps) {
               </div>
               <div className="fv2DockCtl">
                 <span>Drones</span>
+                <button type="button" className="fv2DockStep" aria-label={`Remove all drones from ${d.name}`} disabled={d.dronesAssigned <= 0} onClick={() => setDrones(d.dockId, 0)}>
+                  −−
+                </button>
                 <button type="button" className="fv2DockStep" aria-label={`Remove drone from ${d.name}`} disabled={d.dronesAssigned <= 0} onClick={() => setDrones(d.dockId, d.dronesAssigned - 1)}>
                   −
                 </button>

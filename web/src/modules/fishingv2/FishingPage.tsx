@@ -8,6 +8,7 @@ import type { FishingSectionProps } from "./types";
 import { Summary } from "./Summary";
 import { BuyNext } from "./BuyNext";
 import { Docks } from "./Docks";
+import { Sushi } from "./Sushi";
 import { Setup } from "./Setup";
 import { PageHeader } from "./PageHeader";
 
@@ -38,6 +39,7 @@ export function FishingPage() {
       <PageHeader {...props} />
       <Summary {...props} />
       <BuyNext {...props} />
+      <Sushi {...props} />
       <Docks {...props} />
       <Setup {...props} />
     </div>

@@ -1,0 +1,7 @@
+.fv2SushiHead { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.fv2SushiInput { width: 90px; min-width: 0; }
+.fv2SushiGrid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+@media (min-width: 560px) { .fv2SushiGrid { grid-template-columns: 1fr 1fr; } }
+.fv2SushiRow { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; padding: 2px 0; }
+.fv2SushiBig { font-size: 16px; font-weight: 700; }
+.fv2SushiAdvice { font-size: 14px; overflow-wrap: anywhere; }
