@@ -1,0 +1,34 @@
+.fv2SumHead { display: flex; flex-direction: column; gap: 8px; }
+.fv2SumBig { font-size: 28px; font-weight: 700; }
+.fv2SumBig .fv2Muted { font-size: 15px; font-weight: 400; }
+.fv2SumTake { font-size: 14px; }
+.fv2SumStats { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; }
+.fv2SumStats div { display: flex; flex-direction: column; font-size: 12px; }
+.fv2SumStats b { font-size: 15px; }
+.fv2SumDocks { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; margin-top: 10px; }
+.fv2SumDock { padding: 8px 10px; }
+.fv2SumDockTop { display: flex; justify-content: space-between; gap: 8px; }
+.fv2SumDockNote { font-size: 12px; margin-top: 2px; }
+.fv2SumFoot { display: block; margin-top: 6px; font-size: 12px; }
+
+.fv2BuyTabs { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 10px; }
+.fv2BuyTab { background: transparent; color: var(--text); border: 0; padding: 7px 14px; cursor: pointer; font: inherit; }
+.fv2BuyTabOn { background: var(--accent); color: #fff; }
+.fv2BuyHint { margin-bottom: 8px; font-size: 13px; }
+.fv2BuyList { display: flex; flex-direction: column; gap: 8px; }
+.fv2BuyRow { display: flex; flex-direction: column; gap: 6px; padding: 10px; }
+.fv2BuyTop { display: flex; align-items: center; gap: 10px; }
+.fv2BuyRank { flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--panel); border: 1px solid var(--border); display: grid; place-items: center; font-size: 12px; }
+.fv2BuyName { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 14px; }
+.fv2BuyName .fv2Muted { font-size: 12px; }
+.fv2BuyGain { font-weight: 600; font-size: 14px; white-space: nowrap; }
+.fv2BuyUnlocks { font-size: 13px; }
+.fv2BuyCost { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; }
+.fv2BuyPrice { display: inline-flex; align-items: center; gap: 5px; }
+.fv2BuyTime { font-weight: 600; }
+.fv2BuyBar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.fv2BuyBar > div { height: 100%; background: var(--accent); opacity: 0.7; }
+.fv2BuyNote { font-size: 12px; }
+.fv2BuyMark, .fv2BuyMore { align-self: flex-start; background: transparent; color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; cursor: pointer; font: inherit; font-size: 13px; }
+.fv2BuyMore { margin-top: 10px; }
+.fv2BuyMark:hover, .fv2BuyMore:hover { border-color: var(--accent); }
