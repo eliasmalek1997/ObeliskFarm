@@ -1,0 +1,50 @@
+.gemsHeadHow { margin: 0; }
+.gemsHeadDetails { border: 1px solid var(--border); padding: 8px 12px; background: var(--panel); }
+.gemsHeadDetails summary { cursor: pointer; min-height: 32px; display: flex; align-items: center; }
+.gemsHeadList { margin: 8px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.gemsHeadList li { overflow-wrap: anywhere; }
+
+.gemsSumBig { font-size: 34px; font-weight: 700; line-height: 1.1; }
+.gemsSumBigUnit { font-size: 15px; font-weight: 400; margin-left: 6px; }
+.gemsSumRows { display: grid; gap: 10px; margin-top: 12px; }
+.gemsSumRow { display: grid; gap: 4px; min-width: 0; }
+.gemsSumRowTop { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.gemsSumRowName { min-width: 0; overflow-wrap: anywhere; }
+.gemsSumRowVal { white-space: nowrap; }
+.gemsSumCostList { margin: 8px 0 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.gemsSumCostList li { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.gemsSumSub { font-size: 13px; margin-top: 8px; }
+.gemsSumControls { display: grid; gap: 14px; }
+.gemsSumField { display: grid; gap: 6px; min-width: 0; }
+.gemsSumField label { font-weight: 600; }
+.gemsSumInput {
+  width: 100%; max-width: 220px; min-height: 44px; padding: 0 10px; font: inherit;
+  background: var(--bg, var(--panel)); color: var(--text); border: 1px solid var(--border);
+}
+.gemsSumSeg { max-width: 260px; }
+.gemsSumDetails summary { cursor: pointer; min-height: 32px; display: flex; align-items: center; }
+.gemsSumDetails ul { margin: 6px 0 0; padding-left: 18px; }
+
+.gemsLevGroup { display: grid; gap: 10px; }
+.gemsLevGroupTitle { margin: 6px 0 0; font-size: 15px; font-weight: 700; }
+.gemsLevCard { display: grid; gap: 6px; }
+.gemsLevTop { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.gemsLevLabel { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.gemsLevGain { font-weight: 700; white-space: nowrap; }
+.gemsLevHow { font-size: 14px; }
+.gemsLevNote { font-size: 13px; }
+.gemsLevPrice { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.gemsLevPrice input {
+  width: 130px; min-height: 40px; padding: 0 8px; font: inherit;
+  background: var(--bg, var(--panel)); color: var(--text); border: 1px solid var(--border);
+}
+.gemsLevBtn {
+  min-height: 44px; padding: 0 14px; font: inherit; cursor: pointer; justify-self: start;
+  background: var(--panel); color: var(--text); border: 1px solid var(--accent);
+}
+.gemsLevBtn:hover { background: var(--accent); color: #fff; }
+.gemsLevBtnOn { border-color: var(--border); color: var(--muted); cursor: default; }
+.gemsLevBtnOn:hover { background: var(--panel); color: var(--muted); }
+.gemsLevDetails { border: 1px solid var(--border); padding: 8px 12px; }
+.gemsLevDetails summary { cursor: pointer; min-height: 32px; display: flex; align-items: center; }
+.gemsLevLose { display: grid; gap: 8px; margin-top: 8px; }
