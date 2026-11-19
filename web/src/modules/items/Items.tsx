@@ -3,7 +3,8 @@ import "./items.css";
 import { Collapsible } from "../../components/Collapsible";
 import { Tooltip } from "../../components/Tooltip";
 import { loadJson, saveJson } from "../../lib/storage";
-import { calculateChargeMagnetGemsPerHour, calculateGemBombGemsPerHour, defaultGameParameters, getGameSpeedMultiplier, type GameParameters } from "../../lib/gemev/freebieEv";
+import { defaultGameParameters, getGameSpeedMultiplier, type GameParameters } from "../../lib/gemev/freebieEv";
+import { CHARGE_MAGNET_OBTAIN_CHANCE_PCT, itemsModel } from "../../lib/items/model";
 
 const GEMEV_STORAGE_KEY = "obeliskfarm:web:gemev_save.json:v1";
 const BOMBS_STORAGE_KEY = "obeliskfarm:web:bombs_save.json:v1";
@@ -14,8 +15,6 @@ const RELIC_CHEST_ICON = "https://static.wikitide.net/shminerwiki/6/6d/Relic_Che
 const CHARGE_MAGNET_ICON = "https://static.wikitide.net/shminerwiki/f/fc/Charge_Magnet.png";
 const GEM_ICON = "https://static.wikitide.net/shminerwiki/a/aa/Gem.png";
 
-/** Charge Magnet obtain chance from Item Chests (%), from wiki. Not user input. */
-const CHARGE_MAGNET_OBTAIN_CHANCE_PCT = 2.6;
 
 type ItemsState = {
   chaosTotemDurationMin: number;
@@ -151,75 +150,26 @@ export function Items() {
 
   const itemsPerHourFromChests = state.itemsPerChest * chestsPerHour;
 
-  /** Expected Chaos Totem uptime: real min/h from chests; Gem EV uses this (not a manual estimate). */
-  const chaosTotemsPerHour = itemsPerHourFromChests * (state.chaosTotemObtainChance / 100);
-  const durationGameMin = state.chaosTotemDurationMin + state.chaosTotemDurationSec / 60;
-  const expectedUptimeMinPerHour =
-    chaosTotemsPerHour * (durationGameMin / gameSpeedMult);
-  const expectedUptimeFraction = Math.min(1, Math.max(0, expectedUptimeMinPerHour / 60));
-
-  /** Params for Charge Magnet value: bomb settings from Bombs module (so bomb cycle etc. apply), 10× from external, Chaos Totem from Items or 100% when set in Bombs. */
+  /** Chaos Totem uptime, Charge Magnet and per-chest values (pure math in lib/items/model.ts). Bomb settings from Bombs module, 10× from external, Chaos Totem from Items or 100% when set in Bombs. */
   const effectiveParamsForChargeMagnet = (() => {
     const base = defaultGameParameters();
     const gemevSaved = loadJson<{ params?: Partial<GameParameters> }>(GEMEV_STORAGE_KEY);
     const bombsSaved = loadJson<{ params?: Partial<GameParameters> }>(BOMBS_STORAGE_KEY);
-    const merged: GameParameters = { ...base, ...(gemevSaved?.params ?? {}), ...(bombsSaved?.params ?? {}) };
-    const total10x = typeof ext?.total10xMinPerHour === "number"
-      ? ext.total10xMinPerHour
-      : (ext?.lootbugBomb10xMinPerHour ?? 0) + (ext?.droneBomb10xMinPerHour ?? 0);
-    merged.bomb_recharge_10x_min_per_hour = total10x;
-    // When 100% from Bombs, recharge params are in-game (already /2), so do not apply Chaos again (= 0).
-    merged.chaos_totem_uptime = chaosTotem100FromBombs ? 0 : expectedUptimeFraction;
-    return merged;
+    return { ...base, ...(gemevSaved?.params ?? {}), ...(bombsSaved?.params ?? {}) } as GameParameters;
   })();
-  const chargeMagnetGemsPerHour = calculateChargeMagnetGemsPerHour(effectiveParamsForChargeMagnet, 20);
-  /** Expected Charge Magnets per hour from Item Chests. */
-  const chargeMagnetsPerHour = itemsPerHourFromChests * (CHARGE_MAGNET_OBTAIN_CHANCE_PCT / 100);
-  const chargeMagnetGemEvPerHour = chargeMagnetsPerHour * chargeMagnetGemsPerHour;
-
-  /** Chaos Totem contribution to Gem EV/h. When 100% from Bombs: impact = current gem EV − gem EV with doubled recharge (simulating no Chaos); then value per totem = impact ÷ (totems/h needed to sustain 60 min). */
-  const chaosTotemImpactLive = (() => {
-    if (chaosTotem100FromBombs) {
-      const p = effectiveParamsForChargeMagnet;
-      const withDoubledRecharge: GameParameters = {
-        ...p,
-        gem_bomb_recharge_seconds: (p.gem_bomb_recharge_seconds ?? 1) * 2,
-        cherry_bomb_recharge_seconds: (p.cherry_bomb_recharge_seconds ?? 1) * 2,
-        battery_bomb_recharge_seconds: (p.battery_bomb_recharge_seconds ?? 1) * 2,
-        d20_bomb_recharge_seconds: (p.d20_bomb_recharge_seconds ?? 1) * 2,
-      };
-      const withChaos = calculateGemBombGemsPerHour(p);
-      const withoutChaos = calculateGemBombGemsPerHour(withDoubledRecharge);
-      return Math.max(0, withChaos - withoutChaos);
-    }
-    return (
-      calculateGemBombGemsPerHour(effectiveParamsForChargeMagnet) -
-      calculateGemBombGemsPerHour({ ...effectiveParamsForChargeMagnet, chaos_totem_uptime: 0 })
-    );
-  })();
-
-  /** When 100% from Bombs: value per Chaos Totem = chaosImpact ÷ (totems/h to sustain 60 min). Chaos totems per chest then contribute to chest value. */
-  const chaosValuePerChestWhen100 = (() => {
-    if (!chaosTotem100FromBombs || chaosTotemImpactLive <= 0 || durationGameMin <= 0) return 0;
-    const totemsPerHourToSustain60 = (60 * gameSpeedMult) / durationGameMin;
-    const valuePerTotem = chaosTotemImpactLive / totemsPerHourToSustain60;
-    const chaosTotemsPerChest = state.itemsPerChest * (state.chaosTotemObtainChance / 100);
-    return chaosTotemsPerChest * valuePerTotem;
-  })();
-
-  /** Value of 1 chest in Gem/h from Tier 1 items (Charge Magnet + Chaos Totem). */
-  const valueOfOneChestGemPerHour =
-    state.itemsPerChest * (CHARGE_MAGNET_OBTAIN_CHANCE_PCT / 100) * chargeMagnetGemsPerHour +
-    (chaosTotem100FromBombs ? chaosValuePerChestWhen100 : chestsPerHour > 0 ? chaosTotemImpactLive / chestsPerHour : 0);
-
-  /** Value of 1 chest for Lootbug gains: when Chaos Totem 100% uptime, only Charge Magnet (extra chests don't help Chaos); else full chest value. */
-  const chargeMagnetPartOfChest =
-    state.itemsPerChest * (CHARGE_MAGNET_OBTAIN_CHANCE_PCT / 100) * chargeMagnetGemsPerHour;
-  const valueOfOneChestForLootbug = chaosTotem100FromBombs ? chargeMagnetPartOfChest : valueOfOneChestGemPerHour;
-
-  /** Value per Chaos Totem for Gift EV: 0 when 100% from Bombs; else chaosImpact / totemsPerHour. */
-  const chaosTotemValuePerTotemForGift =
-    chaosTotem100FromBombs || chaosTotemsPerHour <= 0 ? 0 : chaosTotemImpactLive / chaosTotemsPerHour;
+  const total10xForItems = typeof ext?.total10xMinPerHour === "number"
+    ? ext.total10xMinPerHour
+    : (ext?.lootbugBomb10xMinPerHour ?? 0) + (ext?.droneBomb10xMinPerHour ?? 0);
+  const itemsCalc = itemsModel({
+    inputs: state,
+    gameSpeedMult,
+    chestsPerHour,
+    chaosTotem100FromBombs,
+    bombParams: effectiveParamsForChargeMagnet,
+    total10xMinPerHour: total10xForItems,
+  });
+  const { chaosTotemsPerHour, durationGameMin, expectedUptimeFraction, chargeMagnetsPerHour, chargeMagnetGemsPerHour, chargeMagnetGemEvPerHour, chaosTotemImpactLive, valueOfOneChestGemPerHour, valueOfOneChestForLootbug, chaosTotemValuePerTotemForGift } = itemsCalc;
+  const expectedUptimeMinPerHour = chaosTotemsPerHour * (durationGameMin / gameSpeedMult);
 
   /** Single write to gemev_external: Items-owned fields only. See module-dependencies.md ownership table. */
   useEffect(() => {

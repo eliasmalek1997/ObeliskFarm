@@ -5,70 +5,39 @@ import { Collapsible } from "../../components/Collapsible";
 import { loadJson, saveJson } from "../../lib/storage";
 import { calculateGemBombGemsPerHour, defaultGameParameters, getEffectiveGameSpeedMultiplierForTime, getGameSpeedMultiplier, type GameParameters } from "../../lib/gemev/freebieEv";
 import { FREE_BUFFS, GEM_BUFFS, getDurationMinutes, getWeight } from "../../lib/lootbug/constants";
+import {
+  ANGLER_FUEL_DURATION_BASE_SEC, ANGLER_FUEL_DURATION_SEC_PER_GRADE, BOMB_BEAR_FUEL_DURATION_BASE_SEC, BOMB_BEAR_FUEL_DURATION_SEC_PER_GRADE,
+  BOMB_BEAR_LOOTBUG_SPAWN_PCT_BASE, BOMB_BEAR_LOOTBUG_SPAWN_PCT_PER_GRADE, CHAIN_BOMBER_FUEL_DURATION_BASE_SEC, CHAIN_BOMBER_FUEL_DURATION_SEC_PER_GRADE,
+  DEFAULT_DRONE_STATE, ELIXIR_BASE_INTERVAL_SEC, ELIXIR_FUEL_BUFF_BASE_PCT, ELIXIR_FUEL_BUFF_PCT_PER_GRADE, ELIXIR_FUEL_DURATION_BASE_SEC,
+  ELIXIR_FUEL_DURATION_SEC_PER_GRADE, ELIXIR_NUM_BUFFS_WITH_FISHING, ELIXIR_NUM_BUFFS_WITHOUT_FISHING, ELIXIR_SUIT_SEC_PER_LEVEL,
+  FROGGER_BASE_INTERVAL_SEC, FROGGER_FUEL_BOMBS_BASE, FROGGER_FUEL_BOMBS_PER_GRADE, FROGGER_FUEL_DURATION_BASE_SEC, FROGGER_FUEL_DURATION_SEC_PER_GRADE,
+  FROGGER_LOOTFROG_CHANCE_PCT_MAX, FROGGER_LOOTFROG_CHANCE_PCT_PER_GRADE, FROGGER_SUIT_SEC_PER_LEVEL, GASOLINE_GUZZLER_FUEL_DURATION_PCT, GEMS_PER_FUEL,
+  LOOTFROG_REWARDS, LOOTFROG_TOTAL_WEIGHT, MISC_FUEL_MULT, STARBURST_FUEL_DURATION_BASE_SEC, STARBURST_FUEL_DURATION_SEC_PER_GRADE,
+  VEINSEEKER_FUEL_DURATION_BASE_SEC, VEINSEEKER_FUEL_DURATION_SEC_PER_GRADE, VOID_FUEL_DURATION_BASE_SEC, VOID_FUEL_DURATION_SEC_PER_GRADE,
+  bombBearSpawnRateMult, droneFuelDurationSecReal, elixirBomb10xMinPerHour, froggerBombEv, froggerSchedule, fuelDurationGameSec as fuelDurationGameSecOf,
+  fuelDurationMultiplier as fuelDurationMultiplierOf, fuelGemsPerHourForDuration, lootfrogStats,
+  type ElixirState, type LootfrogRewardGroup, type MiscFuelCardTier,
+} from "../../lib/drone/model";
+export type { MiscFuelCardTier };
 
-const ELIXIR_BASE_INTERVAL_SEC = 360;
-const ELIXIR_SUIT_SEC_PER_LEVEL = 15;
-const ELIXIR_FUEL_BUFF_BASE_PCT = 60;
-const ELIXIR_FUEL_BUFF_PCT_PER_GRADE = 6;
 /** No cap: coal upgrades can go beyond former max 20. */
 const COAL_UPGRADE_MAX = 9999;
 /** No cap: drone grade levels (was 45). */
 const DRONE_GRADE_MAX = 9999;
 /** 2× Game Speed buff: 2 min base; halved in real time when 2× Game Speed is active. */
 const GAME_SPEED_2X_BUFF_DURATION_SEC = 120;
-const ELIXIR_NUM_BUFFS_WITH_FISHING = 10;
-const ELIXIR_NUM_BUFFS_WITHOUT_FISHING = 9;
 /** Elixir fuel duration from Drone Buffs table: 3:30 at grade 0, +0:10.5 per grade. Then × (1 + Coal Fuel Duration %). */
-const ELIXIR_FUEL_DURATION_BASE_SEC = 210; // 3:30
-const ELIXIR_FUEL_DURATION_SEC_PER_GRADE = 10.5; // +0:10.5
 /** Frogger fuel duration: 3:00 at grade 0, +0:09 per grade. */
-const FROGGER_FUEL_DURATION_BASE_SEC = 180; // 3:00
-const FROGGER_FUEL_DURATION_SEC_PER_GRADE = 9; // +0:09
 /** Frogger Suit: fires a random bomb every 30 s base; −1.5 s per suit level. */
-const FROGGER_BASE_INTERVAL_SEC = 30;
-const FROGGER_SUIT_SEC_PER_LEVEL = 1.5;
 /** When fueled: 5 bombs per autofire, +1 per grade (no charge consumed). */
-const FROGGER_FUEL_BOMBS_BASE = 5;
-const FROGGER_FUEL_BOMBS_PER_GRADE = 1;
 
 /** Frogger Lootfrog chance: 0% at grade 0, +0.003% per grade, max 0.135% (with Polychrome card). */
-const FROGGER_LOOTFROG_CHANCE_PCT_PER_GRADE = 0.003;
-const FROGGER_LOOTFROG_CHANCE_PCT_MAX = 0.135;
 
-const LOOTFROG_TOTAL_WEIGHT = 196;
 const LOOTFROG_WIKI_IMG = "https://shminer.miraheze.org/wiki/Special:FilePath";
 
 function lootfrogIconUrl(file: string): string {
   return `${LOOTFROG_WIKI_IMG}/${encodeURIComponent(file)}`;
 }
-
-type LootfrogRewardGroup =
-  | "gems"
-  | "fuel"
-  | "relicChests"
-  | "lantern"
-  | "tier2Items"
-  | "skillPoints"
-  | "sushi"
-  | "blueCow"
-  | "frogspawn";
-
-/** Lootfrog rewards: label, weight (chance), gem EV (null = not calculable), icon (wiki filename), and display group. 1 skill point = 125 gems. */
-const LOOTFROG_REWARDS: Array<{ label: string; weight: number; gemEv: number | null; iconFile: string | null; group: LootfrogRewardGroup }> = [
-  { label: "50–100 Gems", weight: 70, gemEv: 75, iconFile: "Gem.png", group: "gems" },
-  { label: "15–30 Fuel", weight: 40, gemEv: 112.5, iconFile: "Fuel.png", group: "fuel" }, // 22.5 fuel × 5
-  { label: "10–20 Relic Chests", weight: 50, gemEv: null, iconFile: "Relic_Chest.png", group: "relicChests" },
-  { label: "1 Lootbug Lantern", weight: 1, gemEv: null, iconFile: "Lootbug_Lantern.png", group: "lantern" },
-  { label: "4–8 Tier 2 Items", weight: 8, gemEv: null, iconFile: "Items_Button.png", group: "tier2Items" },
-  { label: "1–3 Skill Points", weight: 2, gemEv: 250, iconFile: "Skill_Point.png", group: "skillPoints" }, // 2 sp × 125
-  { label: "3–5 Sushi", weight: 8, gemEv: null, iconFile: "Sushi.png", group: "sushi" },
-  { label: "4–10 Blue Cow", weight: 6, gemEv: null, iconFile: "Blue_Cow.png", group: "blueCow" },
-  { label: "1 Frogspawn", weight: 1, gemEv: null, iconFile: "Frogspawn.png", group: "frogspawn" },
-  { label: "150–300 Gems", weight: 4, gemEv: 225, iconFile: "Gem.png", group: "gems" },
-  { label: "100–150 Relic Chests", weight: 2, gemEv: null, iconFile: "Relic_Chest.png", group: "relicChests" },
-  { label: "1000–3000 Gems", weight: 2, gemEv: 2000, iconFile: "Gem.png", group: "gems" },
-  { label: "15–30 Sushi", weight: 2, gemEv: null, iconFile: "Sushi.png", group: "sushi" },
-];
 
 const LOOTFROG_GROUP_LABELS: Record<LootfrogRewardGroup, string> = {
   gems: "Gems",
@@ -84,18 +53,12 @@ const LOOTFROG_GROUP_LABELS: Record<LootfrogRewardGroup, string> = {
 
 /** Bomb Bear Drone: +30% Lootbug Spawn Rate / 4:00 at grade 0, +3% / +0:12 per grade (no spawn rate cap). */
 /** Bomb Bear: +30% Lootbug spawn rate at grade 0, +3% per grade (no cap). E.g. grade 25 = +105% → 2.05×. */
-const BOMB_BEAR_LOOTBUG_SPAWN_PCT_BASE = 30;
-const BOMB_BEAR_LOOTBUG_SPAWN_PCT_PER_GRADE = 3;
-const BOMB_BEAR_FUEL_DURATION_BASE_SEC = 240; // 4:00
-const BOMB_BEAR_FUEL_DURATION_SEC_PER_GRADE = 12; // +0:12
 
 /** Angler Drone: 2 Fishing Ticks every 1140 s (game time). Suit: Time Between Fishing Ticks −40 s per level (1140 − level×40 → 1100 at 1, 340 at 20). */
 const ANGLER_BASE_INTERVAL_SEC = 1140;
 const ANGLER_TICKS_PER_INTERVAL = 2;
 const ANGLER_SUIT_SEC_PER_LEVEL = 40; // −40 s per suit level
 /** Angler fuel duration: same pattern as Frogger (3:00 + 0:09 per grade). */
-const ANGLER_FUEL_DURATION_BASE_SEC = 180;
-const ANGLER_FUEL_DURATION_SEC_PER_GRADE = 9;
 /** Angler fuel buff: 1% proc per Angler cycle. When proc: +6 ticks (base), +Legendary Fish Chance %, 1:45 duration. Per grade: +6 ticks, +% (see below), +0:05.25. Max (Poly): +222 ticks, +52%, 3:09. */
 const ANGLER_BUFF_PROC_CHANCE = 0.01;
 const ANGLER_BUFF_TICKS_BASE = 6;
@@ -112,8 +75,6 @@ const ANGLER_BUFF_DURATION_MAX_SEC = 189; // 3:09
 /** Starburst Drone: Stargazing. Suit: Triple Star Chance 6% base + 1% per level. Fuel buff: +100% Auto-catch (always), +15% Star Spawn Rate at grade 0, +3% per grade; duration 2:20 at grade 0, +0:09 per grade. */
 const STARBURST_TRIPLE_STAR_PCT_BASE = 6;
 const STARBURST_TRIPLE_STAR_PCT_PER_LEVEL = 1;
-const STARBURST_FUEL_DURATION_BASE_SEC = 140; // 2:20
-const STARBURST_FUEL_DURATION_SEC_PER_GRADE = 9;
 const STARBURST_STAR_SPAWN_PCT_BASE = 15;
 const STARBURST_STAR_SPAWN_PCT_PER_GRADE = 3;
 
@@ -124,8 +85,6 @@ const VOID_PORTAL_MULT_MAX = 23;
 const VOID_BUFF_DURATION_BASE_SEC = 180; // 3:00
 const VOID_BUFF_DURATION_SEC_PER_GRADE = 9;
 const VOID_BUFF_DURATION_MAX_SEC = 360; // 6:00
-const VOID_FUEL_DURATION_BASE_SEC = 180; // 3:00
-const VOID_FUEL_DURATION_SEC_PER_GRADE = 9;
 
 /** Veinseeker Drone (in-game): +50% Golden Vein Multi / 2:40 at grade 0, +10% / +0:08 per grade. Max +250% / 5:20 (Polychrome). FYI in Drone UI; Veins module is separate. */
 const VEINSEEKER_GOLDEN_VEIN_PCT_BASE = 50;
@@ -134,8 +93,6 @@ const VEINSEEKER_GOLDEN_VEIN_PCT_MAX = 250;
 const VEINSEEKER_BUFF_DURATION_BASE_SEC = 160; // 2:40
 const VEINSEEKER_BUFF_DURATION_SEC_PER_GRADE = 8; // +0:08
 const VEINSEEKER_BUFF_DURATION_MAX_SEC = 320; // 5:20
-const VEINSEEKER_FUEL_DURATION_BASE_SEC = 180; // 3:00 (same pattern as Void)
-const VEINSEEKER_FUEL_DURATION_SEC_PER_GRADE = 9;
 
 /** Chain Bomber (in-game): Golden Floor Multi on ores/bars — +50% at grade 0, +10% per grade (no cap; e.g. +610% at grade 56). Not used elsewhere in ObeliskFarm; FYI display + fuel cost only. */
 const CHAIN_BOMBER_GOLDEN_FLOOR_PCT_BASE = 50;
@@ -143,10 +100,7 @@ const CHAIN_BOMBER_GOLDEN_FLOOR_PCT_PER_GRADE = 10;
 const CHAIN_BOMBER_BUFF_DURATION_BASE_SEC = 220; // 3:40
 const CHAIN_BOMBER_BUFF_DURATION_SEC_PER_GRADE = 11;
 const CHAIN_BOMBER_BUFF_DURATION_MAX_SEC = 440; // 7:20
-const CHAIN_BOMBER_FUEL_DURATION_BASE_SEC = 180; // 3:00
-const CHAIN_BOMBER_FUEL_DURATION_SEC_PER_GRADE = 9;
 
-const GASOLINE_GUZZLER_FUEL_DURATION_PCT = 20;
 
 const ELIXIR_BUFF_ICONS =
   "https://static.wikitide.net/shminerwiki/";
@@ -181,90 +135,7 @@ const FUEL_SAVE_CHANCE_ICON = "https://static.wikitide.net/shminerwiki/1/1a/Fuel
 const COAL_ICON = "https://static.wikitide.net/shminerwiki/thumb/a/a7/Coal.png/30px-Coal.png";
 const UPGRADES_ICON = "https://static.wikitide.net/shminerwiki/4/4b/Upgrades_Button.png";
 
-/** Misc Fuel card tier: 0 = none (1×), 1 = Card (1.02×), 2 = Gilded (1.05×), 3 = Polychrome (1.10×). */
-export type MiscFuelCardTier = 0 | 1 | 2 | 3;
 
-const MISC_FUEL_MULT: Record<MiscFuelCardTier, number> = { 0: 1, 1: 1.02, 2: 1.05, 3: 1.1 };
-
-type ElixirState = {
-  gameSpeedMultiplier: number;
-  /** Elixir Drone enabled (ON). When OFF, contributions to Gem EV/fuel are zero. */
-  elixirDroneOn: boolean;
-  elixirSuitLevel: number;
-  elixirGradeLevel: number;
-  fishingUnlocked: boolean;
-  fueled: boolean;
-  gasolineGuzzler: boolean;
-  fuelDurationUpgradeLevel: number;
-  fuelSaveChanceUpgradeLevel: number;
-  /** Upgrade Fuel Save Chance (%), multiplicative with Coal Fuel Save. Decimal allowed. */
-  upgradeFuelSaveChancePct: number;
-  /** Misc Fuel card: Fuel Duration 1.02× / 1.05× / 1.10× (card / gild / poly). */
-  miscFuelCardTier: MiscFuelCardTier;
-  /** Relic: Fuel Duration +0.01% per level (multiplicative). */
-  fuelDurationRelicLevel: number;
-  /** Axolotl Skin: +10% fuel duration (multiplicative). */
-  axolotlSkin: boolean;
-  /** Platinum Statue of Appetite (Pet): +15% fuel duration (multiplicative). */
-  platinumStatueOfAppetite: boolean;
-  /** World 3 upgrade: Fuel Duration +0.15% per level (multiplicative). */
-  fuelDurationWorld3Level: number;
-  /** Elixir Crit Chance (Fishing): +10% chance for 3× buff duration. Tribute Rank 2 + Elixir Crit Chance. */
-  elixirCritChanceFishing: boolean;
-  /** Infernal Elixir Drone Card: when active, use elixirCritMult instead of default 3× for crit. */
-  infernalElixirDroneCard: boolean;
-  /** Elixir crit duration mult when Infernal card is active (default 3×). */
-  elixirCritMult: number;
-  /** Frogger Drone */
-  /** Frogger Drone enabled (ON). When OFF, contributions to Gem EV/fuel are zero. */
-  froggerDroneOn: boolean;
-  froggerSuitLevel: number;
-  froggerGradeLevel: number;
-  froggerFueled: boolean;
-  lootfrogsUnlocked: boolean;
-  /** Lootfrog Loot Multiplier; affects all rewards. */
-  lootfrogLootMultiplier: number;
-  /** Triple Lootfrog Chance (%); 3 instead of 1, does not block capacity. */
-  tripleLootfrogChancePct: number;
-  /** 10× Lootfrog Chance (%); 10 instead of 1, does not block capacity. */
-  lootfrog10xChancePct: number;
-  /** Lootfrog capacity; default 5. */
-  lootfrogCapacity: number;
-  /** Golden Lootfrog Chance (%); rewards × Golden Lootfrog Multiplier. */
-  goldenLootfrogChancePct: number;
-  /** Golden Lootfrog Multiplier; base 2×. */
-  goldenLootfrogMultiplier: number;
-  /** Big Lootfrog Chance (%); rewards × Big Lootfrog Multiplier. */
-  bigLootfrogChancePct: number;
-  /** Big Lootfrog Multiplier; base 5×. */
-  bigLootfrogMultiplier: number;
-  /** Bomb Bear Drone: when fueled, +X% Lootbug Spawn Rate (multiplicative with Lootbug stats). */
-  bombBearDroneOn: boolean;
-  bombBearGradeLevel: number;
-  bombBearFueled: boolean;
-  /** Angler Drone: gives fishing ticks; when fueled, buff (extra ticks / legendary % / duration). */
-  anglerDroneOn: boolean;
-  anglerSuitLevel: number;
-  anglerGradeLevel: number;
-  anglerFueled: boolean;
-  /** Starburst Drone: Stargazing; suit = Triple Star Chance, fuel = +100% Auto-catch / +X% Star Spawn Rate. */
-  starburstDroneOn: boolean;
-  starburstSuitLevel: number;
-  starburstGradeLevel: number;
-  starburstFueled: boolean;
-  /** Chain Bomber Drone: FYI Golden Floor Multi (ores/bars in-game). Grade + fuel only. */
-  chainBomberDroneOn: boolean;
-  chainBomberGradeLevel: number;
-  chainBomberFueled: boolean;
-  /** Void Drone: FYI Portal Resource Multi (in-game void). Grade + fuel only. */
-  voidDroneOn: boolean;
-  voidGradeLevel: number;
-  voidFueled: boolean;
-  /** Veinseeker Drone: FYI Golden Vein Multi (in-game). Grade + fuel only. */
-  veinseekerDroneOn: boolean;
-  veinseekerGradeLevel: number;
-  veinseekerFueled: boolean;
-};
 
 const STORAGE_KEY = "obeliskfarm:web:drone_elixir_save.json:v9";
 const STORAGE_KEY_V8 = "obeliskfarm:web:drone_elixir_save.json:v8";
@@ -283,66 +154,13 @@ const LOOTBUG_BASE_SPAWN_MIN = 20;
 const DEFAULT_ACTIVE_GEM_BUFFS = ["10x Bomb Recharge"];
 const GEM_ICON = "https://static.wikitide.net/shminerwiki/a/aa/Gem.png";
 /** 1 fuel = 5 gems (in-game cost). */
-const GEMS_PER_FUEL = 5;
 
 function clampInt(n: number, min: number, max: number): number {
   if (!Number.isFinite(n)) return min;
   return Math.max(min, Math.min(max, Math.trunc(n)));
 }
 
-const DEFAULT: ElixirState = {
-  gameSpeedMultiplier: 1,
-  elixirDroneOn: false,
-  elixirSuitLevel: 8,
-  elixirGradeLevel: 0,
-  fishingUnlocked: true,
-  fueled: false,
-  gasolineGuzzler: true,
-  fuelDurationUpgradeLevel: 19,
-  fuelSaveChanceUpgradeLevel: 0,
-  upgradeFuelSaveChancePct: 0,
-  miscFuelCardTier: 0,
-  fuelDurationRelicLevel: 0,
-  axolotlSkin: false,
-  platinumStatueOfAppetite: false,
-  fuelDurationWorld3Level: 0,
-  elixirCritChanceFishing: false,
-  infernalElixirDroneCard: false,
-  elixirCritMult: 3,
-  froggerDroneOn: false,
-  froggerSuitLevel: 8,
-  froggerGradeLevel: 0,
-  froggerFueled: false,
-  lootfrogsUnlocked: false,
-  lootfrogLootMultiplier: 1,
-  tripleLootfrogChancePct: 0,
-  lootfrog10xChancePct: 0,
-  lootfrogCapacity: 5,
-  goldenLootfrogChancePct: 0,
-  goldenLootfrogMultiplier: 2,
-  bigLootfrogChancePct: 0,
-  bigLootfrogMultiplier: 5,
-  bombBearDroneOn: false,
-  bombBearGradeLevel: 0,
-  bombBearFueled: false,
-  anglerDroneOn: false,
-  anglerSuitLevel: 0,
-  anglerGradeLevel: 0,
-  anglerFueled: false,
-  starburstDroneOn: false,
-  starburstSuitLevel: 0,
-  starburstGradeLevel: 0,
-  starburstFueled: false,
-  chainBomberDroneOn: false,
-  chainBomberGradeLevel: 0,
-  chainBomberFueled: false,
-  voidDroneOn: false,
-  voidGradeLevel: 0,
-  voidFueled: false,
-  veinseekerDroneOn: false,
-  veinseekerGradeLevel: 0,
-  veinseekerFueled: false,
-};
+const DEFAULT: ElixirState = DEFAULT_DRONE_STATE;
 
 function clamp(n: number, min: number, max: number): number {
   if (!Number.isFinite(n)) return min;
@@ -706,58 +524,21 @@ export function Drone() {
   const numBuffs = state.fishingUnlocked ? ELIXIR_NUM_BUFFS_WITH_FISHING : ELIXIR_NUM_BUFFS_WITHOUT_FISHING;
   const fueledBuffDurationPct = ELIXIR_FUEL_BUFF_BASE_PCT + state.elixirGradeLevel * ELIXIR_FUEL_BUFF_PCT_PER_GRADE;
   const fuelDurationFromGradeSec = ELIXIR_FUEL_DURATION_BASE_SEC + state.elixirGradeLevel * ELIXIR_FUEL_DURATION_SEC_PER_GRADE;
-  const fuelDurationWorld3Mult = 1 + state.fuelDurationWorld3Level * 0.15 / 100;
-  const fuelDurationRelicMult = 1 + state.fuelDurationRelicLevel * 0.01 / 100;
-  const platinumStatueMult = state.platinumStatueOfAppetite ? 1.15 : 1;
   // Coal, World 3, Gasoline, Axolotl, Platinum Statue, Cards, Relics: multiplicative. Round once at the end.
-  const fuelDurationGameSec = Math.round(
-    fuelDurationFromGradeSec *
-    (1 + state.fuelDurationUpgradeLevel / 100) *
-    fuelDurationWorld3Mult *
-    (state.gasolineGuzzler ? 1 + GASOLINE_GUZZLER_FUEL_DURATION_PCT / 100 : 1) *
-    (state.axolotlSkin ? 1.1 : 1) *
-    platinumStatueMult *
-    MISC_FUEL_MULT[state.miscFuelCardTier] *
-    fuelDurationRelicMult,
-  );
+  const fuelDurationGameSec = fuelDurationGameSecOf(fuelDurationFromGradeSec, state);
   const fuelDurationSecReal = fuelDurationGameSec / gameSpeedMult;
-  const fuelDurationMultiplier =
-    (1 + state.fuelDurationUpgradeLevel / 100) *
-    fuelDurationWorld3Mult *
-    (state.gasolineGuzzler ? 1 + GASOLINE_GUZZLER_FUEL_DURATION_PCT / 100 : 1) *
-    (state.axolotlSkin ? 1.1 : 1) *
-    platinumStatueMult *
-    MISC_FUEL_MULT[state.miscFuelCardTier] *
-    fuelDurationRelicMult;
+  const fuelDurationMultiplier = fuelDurationMultiplierOf(state);
 
   /** Frogger fuel duration: 3 min base + 9 s per grade (shared upgrades). Round once at the end. */
   const froggerFuelDurationFromGradeSec =
     FROGGER_FUEL_DURATION_BASE_SEC + state.froggerGradeLevel * FROGGER_FUEL_DURATION_SEC_PER_GRADE;
-  const froggerFuelDurationGameSec = Math.round(
-    froggerFuelDurationFromGradeSec *
-    (1 + state.fuelDurationUpgradeLevel / 100) *
-    fuelDurationWorld3Mult *
-    (state.gasolineGuzzler ? 1 + GASOLINE_GUZZLER_FUEL_DURATION_PCT / 100 : 1) *
-    (state.axolotlSkin ? 1.1 : 1) *
-    platinumStatueMult *
-    MISC_FUEL_MULT[state.miscFuelCardTier] *
-    fuelDurationRelicMult,
-  );
+  const froggerFuelDurationGameSec = fuelDurationGameSecOf(froggerFuelDurationFromGradeSec, state);
   const froggerFuelDurationSecReal = froggerFuelDurationGameSec / gameSpeedMult;
 
   /** Bomb Bear fuel duration: 4:00 base + 0:12 per grade (shared fuel duration multiplier). */
   const bombBearFuelDurationFromGradeSec =
     BOMB_BEAR_FUEL_DURATION_BASE_SEC + state.bombBearGradeLevel * BOMB_BEAR_FUEL_DURATION_SEC_PER_GRADE;
-  const bombBearFuelDurationGameSec = Math.round(
-    bombBearFuelDurationFromGradeSec *
-    (1 + state.fuelDurationUpgradeLevel / 100) *
-    fuelDurationWorld3Mult *
-    (state.gasolineGuzzler ? 1 + GASOLINE_GUZZLER_FUEL_DURATION_PCT / 100 : 1) *
-    (state.axolotlSkin ? 1.1 : 1) *
-    platinumStatueMult *
-    MISC_FUEL_MULT[state.miscFuelCardTier] *
-    fuelDurationRelicMult,
-  );
+  const bombBearFuelDurationGameSec = fuelDurationGameSecOf(bombBearFuelDurationFromGradeSec, state);
   const bombBearFuelDurationSecReal = bombBearFuelDurationGameSec / gameSpeedMult;
 
   /** Angler: interval (game time) = 1140 − suit×2 s; real time = interval / game speed. Base ticks per hour = 2 × 3600 / (interval/gameSpeed). */
@@ -787,81 +568,31 @@ export function Drone() {
 
   /** Angler fuel duration: 3:00 base + 0:09 per grade (shared multipliers). */
   const anglerFuelDurationFromGradeSec = ANGLER_FUEL_DURATION_BASE_SEC + state.anglerGradeLevel * ANGLER_FUEL_DURATION_SEC_PER_GRADE;
-  const anglerFuelDurationGameSec = Math.round(
-    anglerFuelDurationFromGradeSec *
-    (1 + state.fuelDurationUpgradeLevel / 100) *
-    fuelDurationWorld3Mult *
-    (state.gasolineGuzzler ? 1 + GASOLINE_GUZZLER_FUEL_DURATION_PCT / 100 : 1) *
-    (state.axolotlSkin ? 1.1 : 1) *
-    platinumStatueMult *
-    MISC_FUEL_MULT[state.miscFuelCardTier] *
-    fuelDurationRelicMult,
-  );
+  const anglerFuelDurationGameSec = fuelDurationGameSecOf(anglerFuelDurationFromGradeSec, state);
   const anglerFuelDurationSecReal = anglerFuelDurationGameSec / gameSpeedMult;
 
   /** Bomb Bear Lootbug spawn rate multiplier when ON and fueled: 1 + min(90%, 30% + 3%×grade). Applied multiplicatively in Lootbug. */
-  const bombBearLootbugSpawnRateMult = useMemo(() => {
-    if (!state.bombBearDroneOn || !state.bombBearFueled) return 1;
-    const pct = BOMB_BEAR_LOOTBUG_SPAWN_PCT_BASE + state.bombBearGradeLevel * BOMB_BEAR_LOOTBUG_SPAWN_PCT_PER_GRADE;
-    return 1 + pct / 100;
-  }, [state.bombBearDroneOn, state.bombBearFueled, state.bombBearGradeLevel]);
+  const bombBearLootbugSpawnRateMult = useMemo(() => bombBearSpawnRateMult(state), [state.bombBearDroneOn, state.bombBearFueled, state.bombBearGradeLevel]);
 
-  const froggerFuelGemsPerHour = useMemo(() => {
-    if (!state.froggerFueled || froggerFuelDurationSecReal <= 0) return 0;
-    const fuelsPerHour = 3600 / froggerFuelDurationSecReal;
-    const coal = state.fuelSaveChanceUpgradeLevel / 100;
-    const upgrade = state.upgradeFuelSaveChancePct / 100;
-    const saveChance = 1 - (1 - coal) * (1 - upgrade);
-    return fuelsPerHour * (1 - saveChance) * GEMS_PER_FUEL;
-  }, [froggerFuelDurationSecReal, state.froggerFueled, state.fuelSaveChanceUpgradeLevel, state.upgradeFuelSaveChancePct]);
+  const froggerFuelGemsPerHour = useMemo(() => state.froggerFueled ? fuelGemsPerHourForDuration(froggerFuelDurationSecReal, state) : 0, [froggerFuelDurationSecReal, state.froggerFueled, state.fuelSaveChanceUpgradeLevel, state.upgradeFuelSaveChancePct]);
 
   /** Bomb Bear fuel cost (100% fueled): same formula as Frogger. */
-  const bombBearFuelGemsPerHour = useMemo(() => {
-    if (!state.bombBearFueled || bombBearFuelDurationSecReal <= 0) return 0;
-    const fuelsPerHour = 3600 / bombBearFuelDurationSecReal;
-    const coal = state.fuelSaveChanceUpgradeLevel / 100;
-    const upgrade = state.upgradeFuelSaveChancePct / 100;
-    const saveChance = 1 - (1 - coal) * (1 - upgrade);
-    return fuelsPerHour * (1 - saveChance) * GEMS_PER_FUEL;
-  }, [bombBearFuelDurationSecReal, state.bombBearFueled, state.fuelSaveChanceUpgradeLevel, state.upgradeFuelSaveChancePct]);
+  const bombBearFuelGemsPerHour = useMemo(() => state.bombBearFueled ? fuelGemsPerHourForDuration(bombBearFuelDurationSecReal, state) : 0, [bombBearFuelDurationSecReal, state.bombBearFueled, state.fuelSaveChanceUpgradeLevel, state.upgradeFuelSaveChancePct]);
 
   /** Angler fuel cost (100% fueled): same formula. */
-  const anglerFuelGemsPerHour = useMemo(() => {
-    if (!state.anglerFueled || anglerFuelDurationSecReal <= 0) return 0;
-    const fuelsPerHour = 3600 / anglerFuelDurationSecReal;
-    const coal = state.fuelSaveChanceUpgradeLevel / 100;
-    const upgrade = state.upgradeFuelSaveChancePct / 100;
-    const saveChance = 1 - (1 - coal) * (1 - upgrade);
-    return fuelsPerHour * (1 - saveChance) * GEMS_PER_FUEL;
-  }, [anglerFuelDurationSecReal, state.anglerFueled, state.fuelSaveChanceUpgradeLevel, state.upgradeFuelSaveChancePct]);
+  const anglerFuelGemsPerHour = useMemo(() => state.anglerFueled ? fuelGemsPerHourForDuration(anglerFuelDurationSecReal, state) : 0, [anglerFuelDurationSecReal, state.anglerFueled, state.fuelSaveChanceUpgradeLevel, state.upgradeFuelSaveChancePct]);
 
   /** Starburst: Triple Star Chance from suit (when ON). 6% base + 1% per level. */
   const starburstTripleStarChancePct = state.starburstDroneOn ? STARBURST_TRIPLE_STAR_PCT_BASE + state.starburstSuitLevel * STARBURST_TRIPLE_STAR_PCT_PER_LEVEL : 0;
   /** Starburst fuel duration: 2:20 base + 0:09 per grade (same coal/card mults). */
   const starburstFuelDurationFromGradeSec = STARBURST_FUEL_DURATION_BASE_SEC + state.starburstGradeLevel * STARBURST_FUEL_DURATION_SEC_PER_GRADE;
-  const starburstFuelDurationGameSec = Math.round(
-    starburstFuelDurationFromGradeSec *
-    (1 + state.fuelDurationUpgradeLevel / 100) *
-    fuelDurationWorld3Mult *
-    (state.gasolineGuzzler ? 1 + GASOLINE_GUZZLER_FUEL_DURATION_PCT / 100 : 1) *
-    (state.axolotlSkin ? 1.1 : 1) *
-    platinumStatueMult *
-    MISC_FUEL_MULT[state.miscFuelCardTier] *
-    fuelDurationRelicMult,
-  );
+  const starburstFuelDurationGameSec = fuelDurationGameSecOf(starburstFuelDurationFromGradeSec, state);
   const starburstFuelDurationSecReal = starburstFuelDurationGameSec / gameSpeedMult;
   /** When fueled: +15% at grade 0, +3% per grade. Applied as mult (1 + pct/100) for uptime fraction in Stargazing. */
   const starburstStarSpawnRatePct = state.starburstDroneOn && state.starburstFueled
     ? STARBURST_STAR_SPAWN_PCT_BASE + state.starburstGradeLevel * STARBURST_STAR_SPAWN_PCT_PER_GRADE
     : 0;
-  const starburstFuelGemsPerHour = useMemo(() => {
-    if (!state.starburstFueled || starburstFuelDurationSecReal <= 0) return 0;
-    const fuelsPerHour = 3600 / starburstFuelDurationSecReal;
-    const coal = state.fuelSaveChanceUpgradeLevel / 100;
-    const upgrade = state.upgradeFuelSaveChancePct / 100;
-    const saveChance = 1 - (1 - coal) * (1 - upgrade);
-    return fuelsPerHour * (1 - saveChance) * GEMS_PER_FUEL;
-  }, [starburstFuelDurationSecReal, state.starburstFueled, state.fuelSaveChanceUpgradeLevel, state.upgradeFuelSaveChancePct]);
+  const starburstFuelGemsPerHour = useMemo(() => state.starburstFueled ? fuelGemsPerHourForDuration(starburstFuelDurationSecReal, state) : 0, [starburstFuelDurationSecReal, state.starburstFueled, state.fuelSaveChanceUpgradeLevel, state.upgradeFuelSaveChancePct]);
 
   /** Chain Bomber: +50% GFM at grade 0, +10% per grade (uncapped). Buff duration 3:40 + 0:11 per grade, max 7:20. */
   const chainBomberGoldenFloorBonusPct = state.chainBomberDroneOn && state.chainBomberFueled
@@ -873,25 +604,9 @@ export function Drone() {
   const chainBomberBuffDurationSecReal = chainBomberBuffDurationSec / gameSpeedMult;
   /** Chain Bomber fuel duration: 3:00 base + 0:09 per grade (shared multipliers). */
   const chainBomberFuelDurationFromGradeSec = CHAIN_BOMBER_FUEL_DURATION_BASE_SEC + state.chainBomberGradeLevel * CHAIN_BOMBER_FUEL_DURATION_SEC_PER_GRADE;
-  const chainBomberFuelDurationGameSec = Math.round(
-    chainBomberFuelDurationFromGradeSec *
-    (1 + state.fuelDurationUpgradeLevel / 100) *
-    fuelDurationWorld3Mult *
-    (state.gasolineGuzzler ? 1 + GASOLINE_GUZZLER_FUEL_DURATION_PCT / 100 : 1) *
-    (state.axolotlSkin ? 1.1 : 1) *
-    platinumStatueMult *
-    MISC_FUEL_MULT[state.miscFuelCardTier] *
-    fuelDurationRelicMult,
-  );
+  const chainBomberFuelDurationGameSec = fuelDurationGameSecOf(chainBomberFuelDurationFromGradeSec, state);
   const chainBomberFuelDurationSecReal = chainBomberFuelDurationGameSec / gameSpeedMult;
-  const chainBomberFuelGemsPerHour = useMemo(() => {
-    if (!state.chainBomberFueled || chainBomberFuelDurationSecReal <= 0) return 0;
-    const fuelsPerHour = 3600 / chainBomberFuelDurationSecReal;
-    const coal = state.fuelSaveChanceUpgradeLevel / 100;
-    const upgrade = state.upgradeFuelSaveChancePct / 100;
-    const saveChance = 1 - (1 - coal) * (1 - upgrade);
-    return fuelsPerHour * (1 - saveChance) * GEMS_PER_FUEL;
-  }, [chainBomberFuelDurationSecReal, state.chainBomberFueled, state.fuelSaveChanceUpgradeLevel, state.upgradeFuelSaveChancePct]);
+  const chainBomberFuelGemsPerHour = useMemo(() => state.chainBomberFueled ? fuelGemsPerHourForDuration(chainBomberFuelDurationSecReal, state) : 0, [chainBomberFuelDurationSecReal, state.chainBomberFueled, state.fuelSaveChanceUpgradeLevel, state.upgradeFuelSaveChancePct]);
 
   /** Void Drone: +3× Portal Resource Multi at grade 0, +1× per grade, max +23×. Buff duration 3:00 + 0:09 per grade, max 6:00. */
   const voidPortalMult = state.voidDroneOn && state.voidFueled
@@ -901,25 +616,9 @@ export function Drone() {
     ? Math.min(VOID_BUFF_DURATION_MAX_SEC, VOID_BUFF_DURATION_BASE_SEC + state.voidGradeLevel * VOID_BUFF_DURATION_SEC_PER_GRADE)
     : 0;
   const voidFuelDurationFromGradeSec = VOID_FUEL_DURATION_BASE_SEC + state.voidGradeLevel * VOID_FUEL_DURATION_SEC_PER_GRADE;
-  const voidFuelDurationGameSec = Math.round(
-    voidFuelDurationFromGradeSec *
-    (1 + state.fuelDurationUpgradeLevel / 100) *
-    fuelDurationWorld3Mult *
-    (state.gasolineGuzzler ? 1 + GASOLINE_GUZZLER_FUEL_DURATION_PCT / 100 : 1) *
-    (state.axolotlSkin ? 1.1 : 1) *
-    platinumStatueMult *
-    MISC_FUEL_MULT[state.miscFuelCardTier] *
-    fuelDurationRelicMult,
-  );
+  const voidFuelDurationGameSec = fuelDurationGameSecOf(voidFuelDurationFromGradeSec, state);
   const voidFuelDurationSecReal = voidFuelDurationGameSec / gameSpeedMult;
-  const voidFuelGemsPerHour = useMemo(() => {
-    if (!state.voidFueled || voidFuelDurationSecReal <= 0) return 0;
-    const fuelsPerHour = 3600 / voidFuelDurationSecReal;
-    const coal = state.fuelSaveChanceUpgradeLevel / 100;
-    const upgrade = state.upgradeFuelSaveChancePct / 100;
-    const saveChance = 1 - (1 - coal) * (1 - upgrade);
-    return fuelsPerHour * (1 - saveChance) * GEMS_PER_FUEL;
-  }, [voidFuelDurationSecReal, state.voidFueled, state.fuelSaveChanceUpgradeLevel, state.upgradeFuelSaveChancePct]);
+  const voidFuelGemsPerHour = useMemo(() => state.voidFueled ? fuelGemsPerHourForDuration(voidFuelDurationSecReal, state) : 0, [voidFuelDurationSecReal, state.voidFueled, state.fuelSaveChanceUpgradeLevel, state.upgradeFuelSaveChancePct]);
 
   /** Veinseeker Drone: +50% Golden Vein Multi at grade 0, +10% per grade, max +250%. Buff duration 2:40 + 0:08 per grade, max 5:20. */
   const veinseekerGoldenVeinPct = state.veinseekerDroneOn && state.veinseekerFueled
@@ -929,24 +628,9 @@ export function Drone() {
     ? Math.min(VEINSEEKER_BUFF_DURATION_MAX_SEC, VEINSEEKER_BUFF_DURATION_BASE_SEC + state.veinseekerGradeLevel * VEINSEEKER_BUFF_DURATION_SEC_PER_GRADE)
     : 0;
   const veinseekerFuelDurationFromGradeSec = VEINSEEKER_FUEL_DURATION_BASE_SEC + state.veinseekerGradeLevel * VEINSEEKER_FUEL_DURATION_SEC_PER_GRADE;
-  const veinseekerFuelDurationGameSec = Math.round(
-    veinseekerFuelDurationFromGradeSec *
-    (1 + state.fuelDurationUpgradeLevel / 100) *
-    fuelDurationWorld3Mult *
-    (state.axolotlSkin ? 1.1 : 1) *
-    (state.platinumStatueOfAppetite ? 1.15 : 1) *
-    MISC_FUEL_MULT[state.miscFuelCardTier] *
-    fuelDurationRelicMult,
-  );
+  const veinseekerFuelDurationGameSec = fuelDurationGameSecOf(veinseekerFuelDurationFromGradeSec, state, { skipGuzzler: true });
   const veinseekerFuelDurationSecReal = veinseekerFuelDurationGameSec / gameSpeedMult;
-  const veinseekerFuelGemsPerHour = useMemo(() => {
-    if (!state.veinseekerFueled || veinseekerFuelDurationSecReal <= 0) return 0;
-    const fuelsPerHour = 3600 / veinseekerFuelDurationSecReal;
-    const coal = state.fuelSaveChanceUpgradeLevel / 100;
-    const upgrade = state.upgradeFuelSaveChancePct / 100;
-    const saveChance = 1 - (1 - coal) * (1 - upgrade);
-    return fuelsPerHour * (1 - saveChance) * GEMS_PER_FUEL;
-  }, [veinseekerFuelDurationSecReal, state.veinseekerFueled, state.fuelSaveChanceUpgradeLevel, state.upgradeFuelSaveChancePct]);
+  const veinseekerFuelGemsPerHour = useMemo(() => state.veinseekerFueled ? fuelGemsPerHourForDuration(veinseekerFuelDurationSecReal, state) : 0, [veinseekerFuelDurationSecReal, state.veinseekerFueled, state.fuelSaveChanceUpgradeLevel, state.upgradeFuelSaveChancePct]);
 
   const fuelMult = state.fueled ? 1 + fueledBuffDurationPct / 100 : 1;
   /** Elixir Crit (Fishing): +10% chance for N× buff duration; expected mult = 1 + 0.1×(N−1). Infernal card overrides N. */
@@ -969,20 +653,14 @@ export function Drone() {
       .sort((a, b) => a.sec - b.sec);
   }, [state.fueled, state.fishingUnlocked, state.elixirCritChanceFishing, state.elixirCritMult, fueledBuffDurationPct, fuelMult, gameSpeedMult, elixirCritExpectedMult]);
 
-  const droneBomb10xMinPerHour = useMemo(() => {
-    const cycleSec = numBuffs * intervalSec;
-    if (cycleSec <= 0) return 0;
-    const b = buffDurations.find((x) => x.id === "10xbomb");
-    if (!b) return 0;
-    return Math.min(60, (b.sec / cycleSec) * 60);
-  }, [numBuffs, intervalSec, buffDurations]);
+  const droneBomb10xMinPerHour = useMemo(
+    () => elixirBomb10xMinPerHour(state, gameSpeedMult),
+    [state.elixirSuitLevel, state.fishingUnlocked, state.elixirGradeLevel, state.fueled, state.elixirCritChanceFishing, state.elixirCritMult, gameSpeedMult],
+  );
 
   /** Frogger: 30 s base (game time), −1.5 s per suit level. Real time = game time ÷ game speed. When fueled: 5 + grade bombs per autofire (no charge consumed). */
   const froggerBombIntervalSecGame = Math.max(0.1, FROGGER_BASE_INTERVAL_SEC - state.froggerSuitLevel * FROGGER_SUIT_SEC_PER_LEVEL);
-  const froggerBombIntervalSecReal = froggerBombIntervalSecGame / gameSpeedMult;
-  const froggerBombsPerAutofire = state.froggerFueled
-    ? FROGGER_FUEL_BOMBS_BASE + state.froggerGradeLevel * FROGGER_FUEL_BOMBS_PER_GRADE
-    : 1;
+  const { intervalSecReal: froggerBombIntervalSecReal, bombsPerAutofire: froggerBombsPerAutofire } = froggerSchedule(state, gameSpeedMult);
 
   /** Bomb cycle from Bombs module so Frogger recalculates when user switches Late/Early in Bombs. */
   const bombsBombCycle = loadJson<{ params?: Partial<GameParameters> }>(BOMBS_STORAGE_KEY)?.params?.bomb_cycle ?? "early";
@@ -1011,17 +689,9 @@ export function Drone() {
     const labels = bombTypeLabels.slice(0, totalBombTypes);
     const colorsBombs = ["#fff59d", "#ffeb3b", "#ffc107", "#ffa726", "#ff9800", "#fb8c00", "#f57c00", "#ef6c00", "#e65100", "#ffcc80", "#ffb74d", "#ffa726", "#ff9800"];
     const colorsEv = ["#90caf9", "#64b5f6", "#42a5f5", "#2196f3"];
-    let baseEv: number;
-    let deltaGem: number;
-    let deltaCherry: number;
-    let deltaBattery: number;
-    let deltaD20: number;
+    let r: ReturnType<typeof froggerBombEv>;
     try {
-      baseEv = calculateGemBombGemsPerHour(params, 0);
-      deltaGem = calculateGemBombGemsPerHour(params, { gem: 1 }) - baseEv;
-      deltaCherry = calculateGemBombGemsPerHour(params, { cherry: 1 }) - baseEv;
-      deltaBattery = calculateGemBombGemsPerHour(params, { battery: 1 }) - baseEv;
-      deltaD20 = calculateGemBombGemsPerHour(params, { d20: 1 }) - baseEv;
+      r = froggerBombEv(params, froggerBombIntervalSecReal, froggerBombsPerAutofire);
     } catch {
       const bombsPerTypePerHour = (3600 / Math.max(0.1, froggerBombIntervalSecReal)) * froggerBombsPerAutofire / totalBombTypes;
       const bombsRows = labels.map((label, i) => ({ label, value: bombsPerTypePerHour, color: colorsBombs[i % colorsBombs.length] })).sort((a, b) => b.value - a.value);
@@ -1029,11 +699,8 @@ export function Drone() {
       const batteryCapIncreasesPerHour = bombsPerTypePerHour * capChance;
       return { froggerGemEvPerHour: 0, totalBombTypesFromGemEv: totalBombTypes, froggerBombsChartData: { bombsPerTypeRows: bombsRows, gemEvPerTypeRows: [], batteryCapIncreasesPerHour } };
     }
-    const sumDeltas = deltaGem + deltaCherry + deltaBattery + deltaD20;
-    const bombsPerHour = 3600 / Math.max(0.1, froggerBombIntervalSecReal);
-    const bombsPerPick = froggerBombsPerAutofire;
-    const froggerGemEvPerHour = bombsPerHour * (1 / totalBombTypes) * bombsPerPick * sumDeltas;
-    const bombsPerTypePerHour = (bombsPerHour * bombsPerPick) / totalBombTypes;
+    const { deltaGem, deltaCherry, deltaBattery, deltaD20, bombsPerTypePerHour } = r;
+    const froggerGemEvPerHour = r.gemEvPerHour;
     const bombsPerTypeRows = labels.map((label, i) => ({ label, value: bombsPerTypePerHour, color: colorsBombs[i % colorsBombs.length] })).sort((a, b) => b.value - a.value);
     const gemEvRows = [
       { label: "Gem", value: bombsPerTypePerHour * deltaGem, color: colorsEv[0] },
@@ -1049,35 +716,9 @@ export function Drone() {
   /** Lootfrog gains: spawns/h per reward, gems/h for calculable rewards. Only when lootfrogsUnlocked and Frogger Drone ON. */
   /** Frogspawn = capacity Lootfrogs (recursive: those can drop Frogspawn again). EV per Lootfrog V = B*196/(196-cap), value per Frogspawn = capacity*V. */
   const { lootfrogGainsRows, lootfrogsPerHour, lootfrogValuePerFrogspawn } = useMemo(() => {
+    const lf = lootfrogStats(state, froggerBombIntervalSecReal);
     if (!state.lootfrogsUnlocked || !state.froggerDroneOn) return { lootfrogGainsRows: [], lootfrogsPerHour: 0, lootfrogValuePerFrogspawn: 0 };
-    const autofiresPerHour = 3600 / Math.max(0.1, froggerBombIntervalSecReal);
-    const spawnChancePct = Math.min(
-      state.froggerGradeLevel * FROGGER_LOOTFROG_CHANCE_PCT_PER_GRADE,
-      FROGGER_LOOTFROG_CHANCE_PCT_MAX
-    );
-    const triggersPerHour = autofiresPerHour * (spawnChancePct / 100);
-    const triplePct = state.tripleLootfrogChancePct / 100;
-    const tenXPct = state.lootfrog10xChancePct / 100;
-    const expectedPerTrigger = 1 + 2 * triplePct + 9 * tenXPct;
-    const lootfrogsPerHour = triggersPerHour * expectedPerTrigger;
-    const lootMult = state.lootfrogLootMultiplier;
-    const goldenPct = state.goldenLootfrogChancePct / 100;
-    const goldenMult = (1 - goldenPct) + goldenPct * state.goldenLootfrogMultiplier;
-    const bigPct = state.bigLootfrogChancePct / 100;
-    const bigMult = (1 - bigPct) + bigPct * state.bigLootfrogMultiplier;
-    const rewardMult = lootMult * goldenMult * bigMult;
-    const baseEvPerLootfrog =
-      (1 / LOOTFROG_TOTAL_WEIGHT) *
-      LOOTFROG_REWARDS.reduce((s, r) => s + (r.gemEv != null ? r.weight * r.gemEv : 0), 0);
-    const cap = Math.min(state.lootfrogCapacity, LOOTFROG_TOTAL_WEIGHT - 1);
-    const evPerLootfrogRecursive = (baseEvPerLootfrog * LOOTFROG_TOTAL_WEIGHT) / (LOOTFROG_TOTAL_WEIGHT - cap);
-    const valuePerFrogspawn = cap * evPerLootfrogRecursive * rewardMult;
-    const rawRows = LOOTFROG_REWARDS.map((r) => {
-      const spawnsPerHour = lootfrogsPerHour * (r.weight / LOOTFROG_TOTAL_WEIGHT);
-      const effectiveEv = r.label === "1 Frogspawn" ? valuePerFrogspawn : r.gemEv;
-      const gemsPerHour = effectiveEv != null ? spawnsPerHour * effectiveEv : null;
-      return { ...r, spawnsPerHour, gemsPerHour };
-    });
+    const rawRows = lf.rows;
     const grouped = new Map<LootfrogRewardGroup, { group: LootfrogRewardGroup; label: string; iconFile: string | null; spawnsPerHour: number; gemsPerHour: number | null }>();
     for (const row of rawRows) {
       const prev = grouped.get(row.group);
@@ -1095,7 +736,7 @@ export function Drone() {
       }
     }
     const rows = Array.from(grouped.values()).sort((a, b) => b.spawnsPerHour - a.spawnsPerHour);
-    return { lootfrogGainsRows: rows, lootfrogsPerHour, lootfrogValuePerFrogspawn: valuePerFrogspawn };
+    return { lootfrogGainsRows: rows, lootfrogsPerHour: lf.lootfrogsPerHour, lootfrogValuePerFrogspawn: lf.valuePerFrogspawn };
   }, [
     state.lootfrogsUnlocked,
     state.froggerDroneOn,
@@ -1128,14 +769,7 @@ export function Drone() {
   }, [lootfrogGainsRows]);
 
   /** Gems/h spent on fuel for 100% fueled uptime: fuels/h × (1 − save chance) × 5 gems/fuel. Save chance = Coal and Upgrade Fuel Save combined multiplicatively. */
-  const fuelGemsPerHour = useMemo(() => {
-    if (fuelDurationSecReal <= 0) return 0;
-    const fuelsPerHour = 3600 / fuelDurationSecReal;
-    const coal = state.fuelSaveChanceUpgradeLevel / 100;
-    const upgrade = state.upgradeFuelSaveChancePct / 100;
-    const saveChance = 1 - (1 - coal) * (1 - upgrade);
-    return fuelsPerHour * (1 - saveChance) * GEMS_PER_FUEL;
-  }, [fuelDurationSecReal, state.fuelSaveChanceUpgradeLevel, state.upgradeFuelSaveChancePct]);
+  const fuelGemsPerHour = useMemo(() => fuelGemsPerHourForDuration(fuelDurationSecReal, state), [fuelDurationSecReal, state.fuelSaveChanceUpgradeLevel, state.upgradeFuelSaveChancePct]);
 
   useEffect(() => {
     const ext = loadJson<Record<string, unknown>>(GEMEV_EXTERNAL_KEY) ?? {};

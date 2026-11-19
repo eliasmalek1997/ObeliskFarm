@@ -196,6 +196,8 @@ function importGemEvAndBombs(stats: ImportedStats): { gemev: ModuleReport | null
   c.setNum(params, "game_speed_multiplier", "Game speed ×", "game_speed_multi", (n) => clamp(n, 1, 10));
   c.setNum(params, "obelisk_level", "Obelisk level", "obelisk_level", int);
   c.setNum(params, "freebie_timer_minutes", "Freebie timer (min)", "freebie_cooldown_seconds", (n) => n / 60);
+  c.setNum(params, "freebie_gems_base", "Freebie gems per roll", "freebie_gems_bonus", (n) => Math.max(0, n));
+  c.setNum(params, "jackpot_chance", "Jackpot chance (5× freebie)", "freebie_5x_chance", (n) => clamp(pct01(n), 0, 1));
   c.setNum(params, "instant_refresh_chance", "Instant refresh chance", "freebie_refresh_chance", (n) => clamp(pct01(n), 0, 1));
   c.setNum(params, "stonks_chance", "Stonks chance", "stonks_chance", (n) => clamp(pct01(n), 0, 1));
   c.setNum(params, "stonks_multiplier", "Stonks ×", "stonks_multi");
@@ -441,9 +443,6 @@ export function applyStatsImport(stats: ImportedStats, version: string | null): 
   if (ge.gemev) modules.push(ge.gemev);
   if (ge.bombs) modules.push(ge.bombs);
   ge.used.forEach((k) => used.add(k));
-  if (ge.gemev) {
-    notes.push("Freebie gems (base) is not imported: the export only has freebie_gems_bonus, which does not clearly match the module's base value.");
-  }
 
   const lb = importLootbug(stats);
   if (lb.report) modules.push(lb.report);

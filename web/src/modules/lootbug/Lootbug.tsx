@@ -18,6 +18,7 @@ import {
   getGemBuffIcon,
   getWeight,
 } from "../../lib/lootbug/constants";
+import { lootbugRates } from "../../lib/lootbug/model";
 import { LootbugEvChart, type LootbugEvBreakdown } from "./LootbugEvChart";
 
 const DEFAULT_ACTIVE_GEM_BUFFS = ["10x Bomb Recharge"];
@@ -370,13 +371,11 @@ export function Lootbug() {
 
   const spawnRateMult = clamp(state.spawnRateMultiplier, 0.1, 20);
   const effectiveSpawnRateMult = spawnRateMult * bombBearLootbugSpawnRateMult;
-  const triplePct = clamp(state.tripleChancePct, 0, 100) / 100;
   const effectiveSpawnMinGame = effectiveSpawnRateMult > 0 ? LOOTBUG_BASE_SPAWN_MIN / effectiveSpawnRateMult : 0;
   const effectiveSpawnMinReal =
     gameSpeed > 0 && effectiveSpawnMinGame > 0 ? effectiveSpawnMinGame / gameSpeed : 0;
-  const spawnsPerHour = effectiveSpawnMinReal > 0 ? 60 / effectiveSpawnMinReal : 0;
-  const expectedLootbugsPerSpawn = 1 + 2 * triplePct;
-  const lootbugsPerHour = spawnsPerHour * expectedLootbugsPerSpawn;
+  const rates = lootbugRates(state, gameSpeed, bombBearLootbugSpawnRateMult);
+  const { spawnsPerHour, expectedLootbugsPerSpawn, lootbugsPerHour } = rates;
 
   const totalFreeWeight = useMemo(
     () => FREE_BUFFS.reduce((s, b) => s + getWeight(b), 0),
@@ -391,12 +390,7 @@ export function Lootbug() {
 
   const lootMultiplier = clamp(state.lootMultiplier, 0.1, 5);
 
-  const gemsPerHour = useMemo(() => {
-    const plus2Gems = FREE_BUFFS.find((b) => b.name === "+2 Gems");
-    if (!plus2Gems || totalFreeWeight <= 0) return 0;
-    const perHour = (lootbugsPerHour * getWeight(plus2Gems)) / totalFreeWeight;
-    return perHour * 2 * lootMultiplier;
-  }, [lootbugsPerHour, totalFreeWeight, lootMultiplier]);
+  const gemsPerHour = rates.gemsPerHour;
 
   const gameSpeed2xMinPerHour = useMemo(() => {
     if (gameSpeed <= 0) return 0;
@@ -414,31 +408,13 @@ export function Lootbug() {
     return freeMinPerHour + gemMinPerHour;
   }, [lootbugsPerHour, totalFreeWeight, totalGemWeightAll, gameSpeed, lootMultiplier]);
 
-  const bombRecharge10xMinPerHour = useMemo(() => {
-    if (gameSpeed <= 0) return 0;
-    const buff = GEM_BUFFS.find((b) => b.name === "10x Bomb Recharge");
-    if (!buff || totalGemWeightAll <= 0) return 0;
-    const perHour = (lootbugsPerHour * getWeight(buff)) / totalGemWeightAll;
-    const durMin = getDurationMinutes(buff.duration) ?? 0;
-    return (perHour * durMin * lootMultiplier) / gameSpeed;
-  }, [lootbugsPerHour, totalGemWeightAll, gameSpeed, lootMultiplier]);
+  const bombRecharge10xMinPerHour = rates.bombRecharge10xMinPerHour;
 
   /** Free buff "+1 Item Chest" per hour (× loot multiplier); written to external for Items / Chests module. */
-  const lootbugItemChestsPerHourFree = useMemo(() => {
-    const buff = FREE_BUFFS.find((b) => b.name === "+1 Item Chest");
-    if (!buff || totalFreeWeight <= 0) return 0;
-    const procsPerHour = (lootbugsPerHour * getWeight(buff)) / totalFreeWeight;
-    return procsPerHour * lootMultiplier;
-  }, [lootbugsPerHour, totalFreeWeight, lootMultiplier]);
+  const lootbugItemChestsPerHourFree = rates.itemChestsPerHourFree;
 
   /** Gem buff "+3 Item Chests" per hour only when the buff is purchased (checked in Gem Buffs). */
-  const lootbugItemChestsPerHourGem = useMemo(() => {
-    if (!buyGemBuffsSet.has("+3 Item Chests")) return 0;
-    const buff = GEM_BUFFS.find((b) => b.name === "+3 Item Chests");
-    if (!buff || totalGemWeightAll <= 0) return 0;
-    const perHour = (lootbugsPerHour * getWeight(buff)) / totalGemWeightAll;
-    return perHour * 3 * lootMultiplier;
-  }, [lootbugsPerHour, totalGemWeightAll, buyGemBuffsSet, lootMultiplier]);
+  const lootbugItemChestsPerHourGem = rates.itemChestsPerHourGem;
 
   const lootbugItemChestsPerHour = lootbugItemChestsPerHourFree + lootbugItemChestsPerHourGem;
 
@@ -452,21 +428,10 @@ export function Lootbug() {
   const goldenPct = clamp(state.goldenChancePct, 0, 100) / 100;
 
   /** Free buff "+1 Relic Chest" per hour (× loot multiplier); written to external for Items module. */
-  const lootbugRelicChestsPerHourFree = useMemo(() => {
-    const buff = FREE_BUFFS.find((b) => b.name === "+1 Relic Chest");
-    if (!buff || totalFreeWeight <= 0) return 0;
-    const procsPerHour = (lootbugsPerHour * getWeight(buff)) / totalFreeWeight;
-    return procsPerHour * lootMultiplier;
-  }, [lootbugsPerHour, totalFreeWeight, lootMultiplier]);
+  const lootbugRelicChestsPerHourFree = rates.relicChestsPerHourFree;
 
   /** Gem buff "+1 Relic Chest" per hour only when the buff is purchased (checked in Gem Buffs). Golden chance is not counted here. Written to external for Items module. */
-  const lootbugRelicChestsPerHourGem = useMemo(() => {
-    if (!buyGemBuffsSet.has("+1 Relic Chest")) return 0;
-    const buff = GEM_BUFFS.find((b) => b.name === "+1 Relic Chest");
-    if (!buff || totalGemWeightAll <= 0) return 0;
-    const perHour = (lootbugsPerHour * getWeight(buff)) / totalGemWeightAll;
-    return perHour * lootMultiplier;
-  }, [lootbugsPerHour, totalGemWeightAll, buyGemBuffsSet, lootMultiplier]);
+  const lootbugRelicChestsPerHourGem = rates.relicChestsPerHourGem;
 
   const lootbugRelicChestsPerHour = lootbugRelicChestsPerHourFree + lootbugRelicChestsPerHourGem;
 
@@ -555,17 +520,7 @@ export function Lootbug() {
     return procsPerHour * LOOTBUG_ARCH_ATTACKS_PER_PROC * lootMultiplier;
   }, [lootbugsPerHour, totalGemWeightAll, buyGemBuffsSet, goldenPct, lootMultiplier]);
 
-  const totalGemCostPerHour = useMemo(() => {
-    if (totalGemWeightAll <= 0) return 0;
-    let sum = 0;
-    for (const buff of GEM_BUFFS) {
-      if (!buyGemBuffsSet.has(buff.name)) continue;
-      const perHour = (lootbugsPerHour * getWeight(buff)) / totalGemWeightAll;
-      const actualCost = Math.max(0, buff.cost - state.gemCostReduction);
-      sum += perHour * actualCost * (1 - goldenPct);
-    }
-    return sum;
-  }, [lootbugsPerHour, totalGemWeightAll, state.gemCostReduction, goldenPct, buyGemBuffsSet]);
+  const totalGemCostPerHour = rates.totalGemCostPerHour;
 
   /** Lootbug's share of Gem EV/h from 10× Bomb Recharge (from Gem EV module). */
   const lootbug10xGemEvPerHour = (() => {
@@ -592,23 +547,16 @@ export function Lootbug() {
   const netGemsPerHour = gemsPerHour - totalGemCostPerHour;
 
   /** Gem value of +10 Cherry Charges free buff per hour (for EV per claim). Only +2 Gems, +10 Cherry and 10× count toward overnight EV. Loot multiplier applies to charges. */
-  const cherryChargesGemsPerHourFromLootbug = useMemo(() => {
-    const buff = FREE_BUFFS.find((b) => b.name === "+10 Cherry Charges");
-    if (!buff || totalFreeWeight <= 0 || lootbugsPerHour <= 0) return 0;
-    const procsPerHour = lootbugsPerHour * (getWeight(buff) / totalFreeWeight);
-    const chargesPerHourFromBuff = procsPerHour * 10 * lootMultiplier;
-    return calculateCherryChargesGemsPerHour(gameSpeedParams, chargesPerHourFromBuff);
-  }, [lootbugsPerHour, totalFreeWeight, lootMultiplier, gameSpeedParams]);
+  const cherryChargesGemsPerHourFromLootbug = useMemo(
+    () => calculateCherryChargesGemsPerHour(gameSpeedParams, rates.cherryFreeChargesPerHour),
+    [rates.cherryFreeChargesPerHour, gameSpeedParams],
+  );
 
   /** Gem EV/h from +100 Cherry Charges gem buff (when in pool). Used in Bomb Bear gross so Drone shows all gem EV from Bomb Bear. */
-  const cherry100GemEvPerHourFromLootbug = useMemo(() => {
-    const buff = GEM_BUFFS.find((b) => b.name === "+100 Cherry Charges");
-    if (!buff || totalGemWeightAll <= 0 || lootbugsPerHour <= 0) return 0;
-    const perHourProcs = (lootbugsPerHour * getWeight(buff)) / totalGemWeightAll;
-    const effectiveRate = buyGemBuffsSet.has("+100 Cherry Charges") ? 1 : goldenPct;
-    const chargesPerHour = perHourProcs * effectiveRate * 100 * lootMultiplier;
-    return calculateCherryChargesGemsPerHour(gameSpeedParams, chargesPerHour);
-  }, [lootbugsPerHour, totalGemWeightAll, buyGemBuffsSet, goldenPct, lootMultiplier, gameSpeedParams]);
+  const cherry100GemEvPerHourFromLootbug = useMemo(
+    () => calculateCherryChargesGemsPerHour(gameSpeedParams, rates.cherry100ChargesPerHour),
+    [rates.cherry100ChargesPerHour, gameSpeedParams],
+  );
 
   /** Extra Gem EV/h from Bomb Bear: user enters spawn rate WITH Bomb Bear. Base = entered / mult; extra = gains(entered) − gains(base) = gains × (mult − 1) / mult. Gross = raw gems + 10× Bomb Recharge + Item Chests + Cherry (free +10 and gem +100). */
   const bombBearLootbugGemsEvPerHour = useMemo(() => {

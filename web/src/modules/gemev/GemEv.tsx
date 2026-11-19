@@ -4,6 +4,7 @@ import "./gemev.css";
 import { Collapsible } from "../../components/Collapsible";
 import { Tooltip } from "../../components/Tooltip";
 import { assetUrl } from "../../lib/assets";
+import { chargeMagnetImpactFallback } from "../../lib/items/model";
 import { loadJson, saveJson } from "../../lib/storage";
 import {
   calculateChargeMagnetGemsPerHour,
@@ -623,9 +624,7 @@ export function GemEv() {
     const giftChests = ext?.giftItemChestsPerHour ?? giftItemChestsPerHour;
     const chestsPerHour = freebieChestsPerHour + stonksChestsPerHour + (ext?.lootbugItemChestsPerHour ?? 0) + giftChests + founderChests;
     const itemsPerChest = typeof ext?.itemsPerChest === "number" ? ext.itemsPerChest : 1;
-    const chargeMagnetsPerHour = chestsPerHour * itemsPerChest * 0.026;
-    const valuePerMagnet = calculateChargeMagnetGemsPerHour(effectiveParams, 20);
-    return chargeMagnetsPerHour * valuePerMagnet;
+    return chargeMagnetImpactFallback(effectiveParams, chestsPerHour, itemsPerChest);
   }, [effectiveParams, freebieChestsPerHour, stonksChestsPerHour, giftItemChestsPerHour, founderSupplyDrop.itemChestsPerHour]);
 
   /** Founder supply drop item chests → Charge Magnet + Chaos Totem value. Shown in Founder bar; excluded from Gem Bomb bar. */
