@@ -51,8 +51,12 @@ async function main() {
       await downloadOne(filename, url);
       ok += 1;
     } catch (err) {
-      failed += 1;
-      console.warn(`Failed ${filename}: ${err instanceof Error ? err.message : err}`);
+      const hasCommitted = fs.existsSync(path.join(dstDir, filename));
+      if (!hasCommitted) failed += 1;
+      console.warn(
+        `Failed ${filename}: ${err instanceof Error ? err.message : err}` +
+          (hasCommitted ? " (keeping committed copy)" : ""),
+      );
     }
   }
   console.log(`Downloaded ${ok}/${WIKI_SPRITES.length} archaeology sprites to ${dstDir}`);
