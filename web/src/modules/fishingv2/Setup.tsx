@@ -16,6 +16,7 @@ import {
   type EnhanceDef,
   type UpgradeDef,
 } from "../../lib/fishing";
+import { LOCATIONS as L } from "./setup/locations";
 import { Group, StepperRow, ToggleRow, ChoiceRow } from "./setup/Rows";
 import "./setup.css";
 
@@ -63,6 +64,7 @@ export function Setup(props: FishingSectionProps) {
     defs.map((d) => (
       <StepperRow
         key={d.id}
+        imported
         label={d.perk}
         icon={upgradeIconUrl(d.iconFile)}
         hint={`${UPGRADE_HINTS[d.id] ?? "Bought with fish."} Each level: ${d.increasePerLevel}.`}
@@ -76,6 +78,7 @@ export function Setup(props: FishingSectionProps) {
     defs.map((d) => (
       <StepperRow
         key={d.id}
+        imported
         label={d.perk}
         icon={enhanceIconUrl(d.iconFile)}
         hint={`Bought with gems. Each level: ${d.increasePerLevel}.`}
@@ -128,28 +131,28 @@ export function Setup(props: FishingSectionProps) {
       {tab === "cards" && (
         <div className="fv2Card">
           <Group title="Misc cards">
-            <ChoiceRow
+            <ChoiceRow where={L.fishingRodCardTier}
               label="Fishing Rod card"
               hint="Rod power x1.02 / x1.05 / x1.10 for Card / Gilded / Poly."
               value={state.fishingRodCardTier}
               options={TIER_OPTIONS}
               onChange={(v) => patch({ fishingRodCardTier: v })}
             />
-            <ChoiceRow
+            <ChoiceRow where={L.sushiCardTier}
               label="Sushi card"
               hint="Extra ticks per Sushi: +5 / +10 / +20 for Card / Gilded / Poly."
               value={state.sushiCardTier}
               options={TIER_OPTIONS}
               onChange={(v) => patch({ sushiCardTier: v })}
             />
-            <ChoiceRow
+            <ChoiceRow where={L.mrNibblesCardTier}
               label="Mr Nibbles card"
               hint="Tiny Notice chance +1% / +2% / +4% for Card / Gilded / Poly."
               value={state.mrNibblesCardTier}
               options={TIER_OPTIONS}
               onChange={(v) => patch({ mrNibblesCardTier: v })}
             />
-            <ToggleRow
+            <ToggleRow where={L.valuePackPotencyPoly}
               label="Value Pack: Potency (Poly)"
               hint="Store value pack that makes Poly fish cards 15% stronger."
               value={state.valuePackPotencyPoly}
@@ -157,7 +160,7 @@ export function Setup(props: FishingSectionProps) {
             />
           </Group>
           <Group title="Infernal cards" blurb="Enter the percent per level shown on the card, and its level.">
-            <StepperRow
+            <StepperRow where={L.infernalMrNibblesPct}
               label="Infernal Mr Nibbles: % per level"
               hint="Flat 5x tick chance per level, as shown on the card."
               value={state.infernalMrNibblesPct}
@@ -165,8 +168,8 @@ export function Setup(props: FishingSectionProps) {
               decimals
               onChange={(v) => patch({ infernalMrNibblesPct: v })}
             />
-            <StepperRow label="Infernal Mr Nibbles: level" value={state.infernalMrNibblesLevel} onChange={(v) => patch({ infernalMrNibblesLevel: v })} />
-            <StepperRow
+            <StepperRow where={L.infernalMrNibblesLevel} label="Infernal Mr Nibbles: level" value={state.infernalMrNibblesLevel} onChange={(v) => patch({ infernalMrNibblesLevel: v })} />
+            <StepperRow where={L.infernalAnglerDronePct}
               label="Infernal Angler Drone: % per level"
               hint="Tier 2 Dock Power per level, as shown on the card."
               value={state.infernalAnglerDronePct}
@@ -174,7 +177,7 @@ export function Setup(props: FishingSectionProps) {
               decimals
               onChange={(v) => patch({ infernalAnglerDronePct: v })}
             />
-            <StepperRow label="Infernal Angler Drone: level" value={state.infernalAnglerDroneLevel} onChange={(v) => patch({ infernalAnglerDroneLevel: v })} />
+            <StepperRow where={L.infernalAnglerDroneLevel} label="Infernal Angler Drone: level" value={state.infernalAnglerDroneLevel} onChange={(v) => patch({ infernalAnglerDroneLevel: v })} />
           </Group>
           <Group title="Fish cards" blurb="Card x1.5, Gilded x2, Poly x4 fish income (plus skill and upgrade bonuses).">
             <div className="fv2SetupBulk">
@@ -194,6 +197,7 @@ export function Setup(props: FishingSectionProps) {
                     {set.fish.map((f) => (
                       <ChoiceRow
                         key={f.id}
+                        imported
                         label={f.name}
                         icon={fishIconUrl(f.iconFile)}
                         value={(state.fishCardTier[f.id] ?? 0) as FishCardTier}
@@ -215,6 +219,7 @@ export function Setup(props: FishingSectionProps) {
             {FISHING_SKILL_TREE.map((sk) => (
               <StepperRow
                 key={sk.id}
+                where={L.skill}
                 label={sk.name}
                 icon={upgradeIconUrl(sk.iconFile)}
                 hint={`${sk.effectLines.join("; ")}. Needs Obelisk level ${sk.obeliskLevel}.`}
@@ -225,26 +230,26 @@ export function Setup(props: FishingSectionProps) {
             ))}
           </Group>
           <Group title="Legendary fish">
-            <StepperRow
+            <StepperRow where={L.legendaryFishFound}
               label="Legendary fish found"
               hint="How many of the 6 Tier 1 legendary fish you have caught. Boosts the Completionist Gatekeeper skill."
               value={state.legendaryFishFound}
               max={LEGENDARY_FISH.length}
               onChange={(v) => patch({ legendaryFishFound: v })}
             />
-            <ToggleRow
+            <ToggleRow where={L.abyssLegendaryCaught}
               label="Cthulhu (Abyss legendary) caught"
               hint="Reduces the Abyss dock ticks needed by 9, so it fills faster."
               value={state.abyssLegendaryCaught}
               onChange={(v) => patch({ abyssLegendaryCaught: v })}
             />
-            <StepperRow
+            <StepperRow where={L.divineRelic5xPoints}
               label="Divine Relic points"
               hint="Each point gives +2% chance of a 5x dock tick."
               value={state.divineRelic5xPoints}
               onChange={(v) => patch({ divineRelic5xPoints: v })}
             />
-            <StepperRow
+            <StepperRow where={L.divineChallengeCoinLevel}
               label="Divine Challenge Coin level"
               hint="Each level gives Shiny Fish Multiplier +10%."
               value={state.divineChallengeCoinLevel}
@@ -252,27 +257,27 @@ export function Setup(props: FishingSectionProps) {
             />
           </Group>
           <Group title="Mr Nibbles (pet)">
-            <StepperRow
+            <StepperRow where={L.mrNibblesLevel}
               label="Mr Nibbles level"
               hint="+0.03x shiny multiplier and +1% triple tick chance per level."
               value={state.mrNibblesLevel}
               onChange={(v) => patch({ mrNibblesLevel: v })}
             />
-            <ToggleRow
+            <ToggleRow where={L.mrNibblesQuestUnlocked}
               label="Mr Nibbles quest unlocked"
               hint="Rank 0 gives +5% Tier 2 Dock Power."
               value={state.mrNibblesQuestUnlocked}
               onChange={(v) => patch({ mrNibblesQuestUnlocked: v })}
             />
             {state.mrNibblesQuestUnlocked && (
-              <StepperRow
+              <StepperRow where={L.mrNibblesQuestRank}
                 label="Mr Nibbles quest rank"
                 hint="0-based rank. Tier 2 Dock Power = 1 + 5% x (rank + 1)."
                 value={state.mrNibblesQuestRank}
                 onChange={(v) => patch({ mrNibblesQuestRank: v })}
               />
             )}
-            <ToggleRow
+            <ToggleRow where={L.mrNibblesSkin}
               label="Mr Nibbles pet skin"
               hint="+2% Shiny Fish chance."
               value={state.mrNibblesSkin}
@@ -280,19 +285,19 @@ export function Setup(props: FishingSectionProps) {
             />
           </Group>
           <Group title="Archaeology idols">
-            <StepperRow
+            <StepperRow where={L.poseidonIdolLevel}
               label="Poseidon idol level"
               hint="+0.25 base drone power per level."
               value={state.poseidonIdolLevel}
               onChange={(v) => patch({ poseidonIdolLevel: v })}
             />
-            <StepperRow
+            <StepperRow where={L.tethysIdolLevel}
               label="Tethys idol level"
               hint="Per level: Tier 2 dock power, drone multiplier and super shiny multiplier each +0.05%."
               value={state.tethysIdolLevel}
               onChange={(v) => patch({ tethysIdolLevel: v })}
             />
-            <StepperRow
+            <StepperRow where={L.astraeusIdolLevel}
               label="Astraeus idol level"
               hint="+0.03% double tick chance per level."
               value={state.astraeusIdolLevel}
@@ -305,18 +310,18 @@ export function Setup(props: FishingSectionProps) {
       {tab === "buffs" && (
         <div className="fv2Card">
           <Group title="Store bundles">
-            <ToggleRow
+            <ToggleRow where={L.legendaryHaulerBundle}
               label="Legendary Hauler Bundle"
               hint="+3% 5x tick chance, fish income x1.10, Tier 2 dock power x1.10."
               value={state.legendaryHaulerBundle}
               onChange={(v) => patch({ legendaryHaulerBundle: v })}
             />
-            <ToggleRow label="Fisher's Bundle" hint="+10% triple tick chance." value={state.fishersBundle} onChange={(v) => patch({ fishersBundle: v })} />
-            <ToggleRow label="Angler's Bundle" hint="+6% Tiny Notice chance." value={state.anglerBundle} onChange={(v) => patch({ anglerBundle: v })} />
-            <ToggleRow label="Half Way Bundle" hint="Fishing Rod power x1.10." value={state.halfWayBundle} onChange={(v) => patch({ halfWayBundle: v })} />
+            <ToggleRow where={L.fishersBundle} label="Fisher's Bundle" hint="+10% triple tick chance." value={state.fishersBundle} onChange={(v) => patch({ fishersBundle: v })} />
+            <ToggleRow where={L.anglerBundle} label="Angler's Bundle" hint="+6% Tiny Notice chance." value={state.anglerBundle} onChange={(v) => patch({ anglerBundle: v })} />
+            <ToggleRow where={L.halfWayBundle} label="Half Way Bundle" hint="Fishing Rod power x1.10." value={state.halfWayBundle} onChange={(v) => patch({ halfWayBundle: v })} />
           </Group>
           <Group title="Construct">
-            <ChoiceRow
+            <ChoiceRow where={L.constructStatue}
               label="Statue Craftmanship"
               hint="Only one applies: Gilded gives fish income x1.25, Platinized x1.40."
               value={state.constructStatue}
@@ -329,14 +334,14 @@ export function Setup(props: FishingSectionProps) {
             />
           </Group>
           <Group title="Stargazing">
-            <StepperRow label="Cetus level" hint="+2% fish income per level." value={state.cetusLevel} onChange={(v) => patch({ cetusLevel: v })} />
-            <StepperRow
+            <StepperRow where={L.cetusLevel} label="Cetus level" hint="+2% fish income per level." value={state.cetusLevel} onChange={(v) => patch({ cetusLevel: v })} />
+            <StepperRow where={L.superStarsLevel}
               label="Super Stars level"
               hint="Fish income multiplier, +1.25% per level."
               value={state.superStarsLevel}
               onChange={(v) => patch({ superStarsLevel: v })}
             />
-            <ToggleRow
+            <ToggleRow where={L.blackHoleBonus}
               label="Black Hole bonus"
               hint="Tier 2 dock power +25%."
               value={state.blackHoleBonus}
@@ -344,19 +349,19 @@ export function Setup(props: FishingSectionProps) {
             />
           </Group>
           <Group title="World 3">
-            <StepperRow
+            <StepperRow where={L.droneBasePowerWorld3Upgrade}
               label="Drone power upgrade (World 3)"
               hint="+0.1 base drone power per level."
               value={state.droneBasePowerWorld3Upgrade}
               onChange={(v) => patch({ droneBasePowerWorld3Upgrade: v })}
             />
-            <StepperRow
+            <StepperRow where={L.fishingDroneBasePowerWorld3}
               label="Workshop: drone power (World 3)"
               hint="+0.02x drone power multiplier per level."
               value={state.fishingDroneBasePowerWorld3}
               onChange={(v) => patch({ fishingDroneBasePowerWorld3: v })}
             />
-            <StepperRow
+            <StepperRow where={L.workshopSushiTicksWorld3}
               label="Workshop: sushi ticks (World 3)"
               hint="+1 extra sushi tick per hour per level."
               value={state.workshopSushiTicksWorld3}

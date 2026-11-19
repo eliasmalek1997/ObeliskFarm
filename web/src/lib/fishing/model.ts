@@ -26,6 +26,7 @@ import {
 } from "./index";
 import type { FishCardTier, FishingState } from "./state";
 import type { FishingExternalData } from "./external";
+import { readFishingCalibration, type FishingCalibration } from "./calibration";
 
 // ———————————————————— moved from Fishing.tsx (unchanged) ————————————————————
 
@@ -238,6 +239,8 @@ export type FishingContext = {
   extraTicksPerHour?: number;
   /** Gems per hour (Gem EV page). 0 / undefined = unknown. */
   gemsPerHour?: number;
+  /** Optional "use my game's numbers" factors (see calibration.ts). Absent / disabled = no change. */
+  calibration?: FishingCalibration | null;
 };
 
 /**
@@ -332,9 +335,22 @@ type Engine = {
   fishPerHour: (dockId: DockId, fish: FishDef, power: number) => number;
 };
 
+/** The one place calibration is applied: every snapshot and ranking pass goes through makeEngine. */
+function applyCalibration(stats: ComputedFishingStats, cal: FishingContext["calibration"]): ComputedFishingStats {
+  if (!cal || !cal.enabled) return stats;
+  const dm = cal.droneMultMult ?? 1;
+  return {
+    ...stats,
+    fishing_rod_power: stats.fishing_rod_power * cal.rodPowerMult,
+    fish_income_multi: stats.fish_income_multi * cal.incomeMult,
+    drone_power_multiplier: stats.drone_power_multiplier * dm,
+    drone_base_power: stats.drone_base_power * dm,
+  };
+}
+
 function makeEngine(state: FishingState, ctx: FishingContext): Engine {
   const opts = buildTotalFishOptions(state);
-  const stats = computeFishingStatsFromLevels(state.upgradeLevels ?? {}, state.enhanceLevels ?? {}, opts);
+  const stats = applyCalibration(computeFishingStatsFromLevels(state.upgradeLevels ?? {}, state.enhanceLevels ?? {}, opts), ctx.calibration);
   const tickOpts = {
     motleySchoolLevel: state.skillTreeLevels?.["motley_school"] ?? 0,
     enhanceT2DockTicksLevel: state.enhanceLevels?.["enhance_tier2_dock_ticks"] ?? 0,
@@ -402,6 +418,8 @@ export type FishingStatsSnapshot = {
   rodPowerExact: number;
   /** Rod power actually used on the rod's dock: round(exact x rod card multiplier). */
   rodPower: number;
+  /** exact x rod card multiplier, unrounded. This is what the game's stats export reports as fishing_rod_power. */
+  rodPowerWithCard: number;
   /** Max drones you can assign (floor of the raw cap). */
   droneCap: number;
   /** Raw (possibly fractional) drone cap from the stats. */
@@ -545,6 +563,7 @@ export function computeFishingSnapshot(state: FishingState, ctx: FishingContext 
     stats: {
       rodPowerExact: s.fishing_rod_power,
       rodPower: e.rodPower,
+      rodPowerWithCard: s.fishing_rod_power * FISHING_ROD_CARD_MULT[state.fishingRodCardTier ?? 0],
       droneCap: e.droneCap,
       droneCapExact: s.fishing_drone_cap,
       dronePower: s.drone_base_power,
@@ -723,6 +742,7 @@ export function buildFishingContext(
 ): FishingContext {
   const ticksPerSushi = SUSHI_BASE_TICKS + SUSHI_CARD_TICKS[state.sushiCardTier];
   return {
+    calibration: readFishingCalibration(),
     elixir3xUptimeFraction: ext.elixir3xFishingExternal.uptimeFraction,
     extraTicksPerHour:
       ext.anglerTicksPerHour +

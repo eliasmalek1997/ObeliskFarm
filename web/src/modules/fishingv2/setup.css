@@ -21,3 +21,5 @@
 .fv2SetupFishGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0 16px; }
 .fv2SetupBulk { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; font-size: 13px; }
 @media (max-width: 520px) { .fv2SetupCtl { width: 100%; justify-content: flex-end; } }
+.fv2SetupWhere { flex: 1 0 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; font-size: 11px; line-height: 1.35; }
+.fv2SetupChip { padding: 0 6px; border: 1px solid var(--border); border-radius: 8px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; }

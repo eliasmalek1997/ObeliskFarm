@@ -11,7 +11,21 @@ type Common = {
   label: string;
   hint?: string;
   icon?: string;
+  /** "Where to find it" text, shown under the row. */
+  where?: string;
+  /** Filled by Import stats: shows a small chip. */
+  imported?: boolean;
 };
+
+function Where({ where, imported }: Common) {
+  if (!where && !imported) return null;
+  return (
+    <div className="fv2SetupWhere fv2Muted">
+      {imported ? <span className="fv2SetupChip">from import</span> : null}
+      {where ? <span>{where}</span> : null}
+    </div>
+  );
+}
 
 function Label({ label, hint, icon, extra }: Common & { extra?: ReactNode }) {
   return (
@@ -68,6 +82,7 @@ export function StepperRow(
           </button>
         ) : null}
       </div>
+      <Where {...props} />
     </div>
   );
 }
@@ -87,6 +102,7 @@ export function ToggleRow(props: Common & { value: boolean; onChange: (v: boolea
           {props.value ? "Yes" : "No"}
         </button>
       </div>
+      <Where {...props} />
     </div>
   );
 }
@@ -111,6 +127,7 @@ export function ChoiceRow<T extends string | number>(
           </button>
         ))}
       </div>
+      <Where {...props} />
     </div>
   );
 }
