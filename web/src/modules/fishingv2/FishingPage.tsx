@@ -11,6 +11,7 @@ import { BuyNext } from "./BuyNext";
 import { Inventory } from "./Inventory";
 import { Docks } from "./Docks";
 import { Sushi } from "./Sushi";
+import { Boosts } from "./Boosts";
 import { Setup } from "./Setup";
 import { PageHeader } from "./PageHeader";
 
@@ -46,6 +47,7 @@ export function FishingPage() {
       <Inventory {...props} />
       <BuyNext {...props} />
       <Sushi {...props} />
+      <Boosts {...props} />
       <Docks {...props} />
       <Setup {...props} />
     </div>

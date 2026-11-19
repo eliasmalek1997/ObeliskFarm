@@ -1,0 +1,6 @@
+.fv2BoostsRow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 8px; }
+.fv2BoostsGrid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+@media (min-width: 560px) { .fv2BoostsGrid { grid-template-columns: 1fr 1fr; } }
+.fv2BoostsInput { width: 80px; min-width: 0; }
+.fv2BoostsVerdict { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; margin: 6px 0; }
+.fv2BoostsLine { font-size: 13px; overflow-wrap: anywhere; margin: 2px 0; }
