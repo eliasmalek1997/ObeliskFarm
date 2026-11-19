@@ -1,0 +1,27 @@
+export type GlossaryEntry = { term: string; def: string };
+
+export const GLOSSARY: Record<string, GlossaryEntry> = {
+  tick: { term: "Tick", def: "The game's fishing clock. Every tick, each dock's meter fills by one step. A tick normally lasts 60 seconds." },
+  tickSpeed: { term: "Tick speed", def: "How many seconds one tick takes. Upgrades, enhancements and skills shorten it, so docks fill more often." },
+  dock: { term: "Dock", def: "A fishing spot (Lake, Desert, Tundra and so on) with 4 fish. You unlock docks by upgrading your boat." },
+  dockFill: { term: "Dock fill", def: "When a dock's meter reaches full, it rolls a catch for each of its fish. Fewer ticks per fill means more fills per hour." },
+  catchChance: { term: "Catch chance", def: "How likely a fish is caught on a fill. It depends on your power compared with the fish's power rating, and caps at 100%." },
+  fishPower: { term: "Fish power rating", def: "How strong a fish is. Your dock power must be high enough relative to it to catch the fish reliably." },
+  rodPower: { term: "Rod power", def: "The power of your fishing rod. The rod only works on one dock at a time." },
+  drone: { term: "Fishing drone", def: "A helper that fishes a dock for you. Each drone is assigned to a dock and adds its power there." },
+  dronePower: { term: "Drone power", def: "How much power each drone adds. Total drone power is the number of drones times power per drone." },
+  droneCap: { term: "Drone cap", def: "The number of drones you can run at once. Upgrades, enhancements and skills raise it." },
+  boat: { term: "Boat / Tier 2 boat", def: "Upgrading the boat unlocks new docks and upgrades. After the Tier 1 boat is maxed, the Tier 2 boat unlocks the higher docks and their upgrades." },
+  multiTick: { term: "Double / triple / 5x tick", def: "A random chance that a tick counts as 2, 3 or 5 ticks, filling docks faster on average." },
+  shiny: { term: "Shiny", def: "A catch can be shiny, which multiplies its fish reward (5x base)." },
+  superShiny: { term: "Super shiny", def: "A shiny catch can roll again to become super shiny, which multiplies the reward further." },
+  cardTiers: { term: "Fish card tiers", def: "Each fish can have a card, then gilded, then poly, then infernal. Higher tiers multiply that fish's income more." },
+  enhancement: { term: "Enhancement", def: "A permanent fishing upgrade bought with gems. It is separate from the normal upgrades." },
+  notice: { term: "Notice", def: "A request to hand in fish for rewards. Some skills reduce the fish a notice asks for." },
+  token: { term: "Token", def: "A reward currency tied to notices. This page does not count tokens in its fish-per-hour numbers." },
+  sushi: { term: "Sushi", def: "A consumable that gives bonus fishing ticks." },
+  legendary: { term: "Legendary fish", def: "One rare fish per dock. You can only catch it once all 4 fish in that dock are poly cards and the last fish's catch chance is 100% or more." },
+  skillPoints: { term: "Skill points", def: "Points spent in the Fishing skill tree, which unlocks at certain Obelisk levels." },
+  gainPerHour: { term: "Gain per hour of farming", def: "How much extra income per hour a purchase gives you. The bigger the gain compared to its cost, the better the buy." },
+  bottleneck: { term: "Bottleneck: power vs ticks", def: "Either your power is too low to catch fish reliably, or your docks fill too slowly. The page shows which one is holding you back, so you buy the right upgrade." },
+};

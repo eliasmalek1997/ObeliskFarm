@@ -1,1 +1,104 @@
-/* New Fishing page styles (fv2 prefix). */
+/* New Fishing page styles (fv2 prefix). Mobile first.
+ *
+ * .fv2               page root (use with .container): max 900px, centered, vertical rhythm
+ * .fv2Section        a page section block
+ * .fv2SectionHead    optional flex wrapper: title on the left, slot (buttons/chips) on the right
+ * .fv2SectionTitle   h2-style section heading
+ * .fv2Card           panel with border and 12px padding
+ * .fv2Grid           1 column under 560px, auto-fill columns (min 260px) above
+ * .fv2Muted          secondary text color
+ * .fv2Chip           small badge; combine with .fv2Good/.fv2Warn/.fv2Bad
+ * .fv2Good/.fv2Warn/.fv2Bad  color accents for text, or border+text on a chip
+ * .fv2Tabs           segmented control wrapper (scrolls horizontally on small screens)
+ * .fv2Tab            tab button (44px min height); .fv2TabActive marks the selected one
+ * .fv2Stepper        inline "- value +" control with 40px buttons
+ * .fv2Bar/.fv2BarFill progress bar; set fill width via inline style
+ * Header-only helpers: .fv2Steps, .fv2Step, .fv2Term, .fv2TermTip, .fv2Gloss
+ */
+.fv2 {
+  max-width: 900px;
+  margin: 0 auto;
+  padding-left: 16px;
+  padding-right: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-sizing: border-box;
+  min-width: 0;
+}
+.fv2 *, .fv2 *::before, .fv2 *::after { box-sizing: border-box; }
+.fv2Section { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.fv2SectionHead {
+  display: flex; flex-wrap: wrap; align-items: center;
+  justify-content: space-between; gap: 8px;
+}
+.fv2SectionTitle { margin: 0; font-size: 18px; font-weight: 700; color: var(--text); }
+.fv2Card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 12px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.fv2Grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+@media (min-width: 560px) {
+  .fv2Grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+}
+.fv2Muted { color: var(--muted); }
+.fv2Chip {
+  display: inline-block; padding: 2px 8px; font-size: 12px; line-height: 1.5;
+  border: 1px solid var(--border); color: var(--text); white-space: nowrap;
+}
+.fv2Good { color: var(--good); }
+.fv2Warn { color: #d9a400; }
+.fv2Bad { color: var(--bad); }
+.fv2Chip.fv2Good { border-color: var(--good); }
+.fv2Chip.fv2Warn { border-color: #d9a400; }
+.fv2Chip.fv2Bad { border-color: var(--bad); }
+
+.fv2Tabs {
+  display: flex; gap: 0; overflow-x: auto; max-width: 100%;
+  border: 1px solid var(--border); -webkit-overflow-scrolling: touch;
+}
+.fv2Tab {
+  flex: 1 0 auto; min-height: 44px; padding: 0 14px;
+  background: transparent; color: var(--muted); border: 0;
+  border-right: 1px solid var(--border); font: inherit; cursor: pointer; white-space: nowrap;
+}
+.fv2Tab:last-child { border-right: 0; }
+.fv2TabActive { background: var(--accent); color: #fff; font-weight: 600; }
+
+.fv2Stepper { display: inline-flex; align-items: stretch; border: 1px solid var(--border); }
+.fv2Stepper button {
+  width: 40px; height: 40px; background: var(--panel); color: var(--text);
+  border: 0; font: inherit; font-size: 18px; cursor: pointer;
+}
+.fv2Stepper button:disabled { opacity: 0.4; cursor: default; }
+.fv2Stepper > :not(button) {
+  min-width: 48px; display: flex; align-items: center; justify-content: center;
+  padding: 0 8px; border-left: 1px solid var(--border); border-right: 1px solid var(--border);
+  background: transparent; color: var(--text); font: inherit; text-align: center;
+}
+
+.fv2Bar { height: 10px; background: var(--border); overflow: hidden; width: 100%; }
+.fv2BarFill { height: 100%; background: var(--accent); max-width: 100%; }
+
+/* Header + glossary */
+.fv2Steps { display: grid; grid-template-columns: 1fr; gap: 8px; margin: 0; padding: 0; list-style: none; }
+@media (min-width: 560px) { .fv2Steps { grid-template-columns: repeat(3, 1fr); } }
+.fv2Step { display: flex; gap: 8px; align-items: flex-start; }
+.fv2StepNum {
+  flex: 0 0 auto; width: 24px; height: 24px; display: inline-flex;
+  align-items: center; justify-content: center; background: var(--accent); color: #fff; font-weight: 700;
+}
+.fv2Term {
+  display: inline; padding: 0; margin: 0; background: none; border: 0; font: inherit;
+  color: inherit; cursor: help; border-bottom: 1px dotted var(--muted); position: relative;
+}
+.fv2TermTip {
+  display: block; margin-top: 4px; padding: 8px; font-size: 13px; font-weight: 400;
+  background: var(--panel); border: 1px solid var(--border); color: var(--text);
+}
+.fv2Gloss dt { font-weight: 600; margin-top: 8px; }
+.fv2Gloss dd { margin: 2px 0 0; color: var(--muted); }
+.fv2Gloss summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; }
