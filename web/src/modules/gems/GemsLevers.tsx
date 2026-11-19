@@ -30,34 +30,8 @@ export function GemsLevers({ inputs, overrides, setOverrides, levers }: GemSecti
     overrides.bombCycle != null || overrides.lootbugBuy != null || overrides.chaosTotemFull != null ||
     Object.keys(overrides.droneFuel ?? {}).length > 0 || Object.keys(overrides.droneOn ?? {}).length > 0;
 
-  /** Returns the override patch for a lever, or null when it has no what-if mapping. */
-  const patchFor = (l: GemLever): ((o: GemOverrides) => GemOverrides) | null => {
-    if (l.id === "bomb_cycle") {
-      const target = l.how.endsWith("Late") ? "late" : "early";
-      return (o) => ({ ...o, bombCycle: target });
-    }
-    if (l.id === "chaos_totem_100") return (o) => ({ ...o, chaosTotemFull: true });
-    if (l.id.startsWith("lootbug_buy_")) {
-      const name = l.id.slice("lootbug_buy_".length);
-      const stop = l.label.includes("stop buying");
-      return (o) => {
-        const cur = new Set(o.lootbugBuy ?? inputs.lootbug.activeGemBuffs);
-        if (stop) cur.delete(name); else cur.add(name);
-        return { ...o, lootbugBuy: [...cur] };
-      };
-    }
-    if (l.id.startsWith("fuel_")) {
-      const id = l.id.slice(5) as DroneId;
-      const on = l.label.endsWith("fuel it");
-      return (o) => ({ ...o, droneFuel: { ...o.droneFuel, [id]: on } });
-    }
-    const m = /^swap_(\w+)_(\w+)$/.exec(l.id);
-    if (m) {
-      const from = m[1] as DroneId, to = m[2] as DroneId;
-      return (o) => ({ ...o, droneOn: { ...o.droneOn, [from]: false, [to]: true }, droneFuel: { ...o.droneFuel, [to]: true } });
-    }
-    return null;
-  };
+  /** The model supplies the exact what-if change it measured (see GemLever.whatIf). */
+  const patchFor = (l: GemLever): ((o: GemOverrides) => GemOverrides) | null => l.whatIf ?? null;
 
   const setPrice = (id: string, v: string) => {
     const n = Number(v);

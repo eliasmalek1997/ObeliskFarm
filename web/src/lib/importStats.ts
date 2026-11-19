@@ -403,6 +403,11 @@ function importDrone(stats: ImportedStats): { report: ModuleReport | null; used:
   }
   c.setNum(d, "gameSpeedMultiplier", "Game speed ×", "game_speed_multi", (n) => clamp(n, 1, 10));
   c.setNum(d, "lootfrogLootMultiplier", "Lootfrog loot ×", "lootfrog_loot_multi");
+  // Coal tab: the export gives the total fuel-duration multiplier and fuel save chance. The Drone module stores
+  // fuel duration as +% (1 + x/100) and save chance in %, so convert. Other fuel-duration bonuses in the Drone
+  // module (relic, World 3, misc card, skins) should stay off/0, or they would be applied twice.
+  c.setNum(d, "fuelDurationUpgradeLevel", "Fuel duration +%", "coal_fuel_duration_multi", (n) => Math.max(0, (n - 1) * 100));
+  c.setNum(d, "fuelSaveChanceUpgradeLevel", "Fuel save chance %", "coal_fuel_save_chance", (n) => Math.max(0, Math.min(100, n)));
   c.setNum(d, "lootfrogCapacity", "Lootfrog capacity", "lootfrog_capacity");
   c.setNum(d, "tripleLootfrogChancePct", "Triple lootfrog %", "lootfrog_triple_spawn_chance");
   c.setNum(d, "lootfrog10xChancePct", "10× lootfrog %", "lootfrog_10x_spawn_chance");
@@ -423,6 +428,9 @@ function importDrone(stats: ImportedStats): { report: ModuleReport | null; used:
     }
   }
   saveJson(KEYS.drone, { ...base, ...d });
+  if (c.used.has("coal_fuel_duration_multi")) {
+    notes.push("Drone fuel duration is imported as the game's total multiplier, so leave the relic, World 3, misc fuel card and skin bonuses in the Drone module at 0/off.");
+  }
   notes.push("Drone suit levels are not imported: drones_suit_level_array has no drone names, so the order can't be verified.");
   return { report: { module: "Drone", applied: c.lines }, used: c.used, notes };
 }

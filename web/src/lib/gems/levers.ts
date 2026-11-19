@@ -22,10 +22,15 @@ export type GemLever = {
   /** costGems / deltaNetPerHour when both known and delta > 0. */
   paybackHours?: number | null;
   note?: string;
+  /**
+   * Present when the lever is purely a page what-if (bomb cycle, drone fuel/swap, Lootbug buys, Chaos 100%).
+   * Applies the same change the ranking measured to a given overrides object.
+   */
+  whatIf?: (o: GemOverrides) => GemOverrides;
 };
 
 type Mod = { inputs: GemInputs; overrides: GemOverrides };
-type Candidate = { id: string; label: string; kind: GemLeverKind; how: string; note?: string; apply: (m: Mod, p: GameParameters) => Mod | null };
+type Candidate = { id: string; label: string; kind: GemLeverKind; how: string; note?: string; apply: (m: Mod, p: GameParameters) => Mod | null; overrideOnly?: boolean };
 
 const CARD_NAMES = ["none", "Card", "Gilded", "Polychrome"];
 const GEM_BUFF_LEVERS: { name: string; short: string }[] = [
@@ -57,6 +62,7 @@ function candidates(base: Mod): Candidate[] {
     how: `Bombs → Bomb cycle → ${otherCycle === "late" ? "Late" : "Early"}`,
     note: otherCycle === "late" ? "Late: Cherry → Gem → Battery → D20 (cherry 3x bonus counts as gem-bomb clicks)." : "Early: Cherry → Battery → D20 → Gem.",
     apply: (m) => withOverrides(m, { bombCycle: otherCycle }),
+      overrideOnly: true,
   });
 
   // --- drone fuel toggles (only drones whose benefit the model values)
@@ -71,6 +77,7 @@ function candidates(base: Mod): Candidate[] {
       how: `Drone → ${def.label} → ${fueled ? "uncheck Fueled" : "check Fueled"}`,
       note: id === "elixir" ? "Elixir's 2x Game Speed buff is not valued, so this understates keeping it fueled." : id === "frogger" ? "Frogger only pays for its fuel with the late bomb cycle (unfueled it fires 1 bomb per autofire)." : undefined,
       apply: (m) => withOverrides(m, { droneFuel: { ...m.overrides.droneFuel, [id]: !fueled } }),
+      overrideOnly: true,
     });
   }
   // --- swaps among Frogger / Bomb Bear / Angler
@@ -89,6 +96,7 @@ function candidates(base: Mod): Candidate[] {
             droneOn: { ...m.overrides.droneOn, [from]: false, [to]: true },
             droneFuel: { ...m.overrides.droneFuel, [to]: true },
           }),
+        overrideOnly: true,
       });
     }
   }
@@ -109,6 +117,7 @@ function candidates(base: Mod): Candidate[] {
         else cur.add(b.name);
         return withOverrides(m, { lootbugBuy: [...cur] });
       },
+      overrideOnly: true,
     });
   }
 
@@ -196,6 +205,7 @@ function candidates(base: Mod): Candidate[] {
       how: "Items: more Chaos Totems / longer duration until uptime is 100%",
       note: "Upper bound; needs far more totems than your chests give.",
       apply: (m) => withOverrides(m, { chaosTotemFull: true }),
+      overrideOnly: true,
     });
   }
   return out;
@@ -221,6 +231,9 @@ export function rankGemLevers(inputs: GemInputs, overrides: GemOverrides = {}): 
       costGems,
       paybackHours: costGems != null && delta > 1e-9 ? costGems / delta : null,
       note: c.note,
+      whatIf: c.overrideOnly
+        ? (o: GemOverrides) => c.apply({ inputs, overrides: o }, buildEffectiveParams(inputs, o))?.overrides ?? o
+        : undefined,
     });
   }
   const free = (k: GemLeverKind) => k !== "purchase";
@@ -230,4 +243,32 @@ export function rankGemLevers(inputs: GemInputs, overrides: GemOverrides = {}): 
     if (fa !== fb) return fa - fb;
     return b.deltaNetPerHour - a.deltaNetPerHour;
   });
+}
+
+export type PlannedChange = { id: string; label: string; how: string; deltaNetPerHour: number };
+
+/**
+ * Free changes applied one after another: pick the best free what-if, apply it, re-rank, repeat.
+ * Sequential so the list never contradicts itself (e.g. Frogger fuel only pays once the cycle is Late).
+ * Drone swaps are left out: they trade gems for other resources (fishing ticks, lootbugs) the model doesn't value.
+ */
+export function planFreeChanges(
+  inputs: GemInputs,
+  overrides: GemOverrides = {},
+  maxSteps = 8,
+): { steps: PlannedChange[]; finalOverrides: GemOverrides; netBefore: number; netAfter: number } {
+  const netBefore = computeGemSnapshot(inputs, overrides).netPerHour;
+  let cur = overrides;
+  const steps: PlannedChange[] = [];
+  const done = new Set<string>();
+  for (let i = 0; i < maxSteps; i++) {
+    const next = rankGemLevers(inputs, cur).find(
+      (l) => l.kind !== "purchase" && l.whatIf && !l.id.startsWith("swap_") && !done.has(l.id) && l.deltaNetPerHour > 0.5,
+    );
+    if (!next || !next.whatIf) break;
+    done.add(next.id);
+    steps.push({ id: next.id, label: next.label, how: next.how, deltaNetPerHour: next.deltaNetPerHour });
+    cur = next.whatIf(cur);
+  }
+  return { steps, finalOverrides: cur, netBefore, netAfter: computeGemSnapshot(inputs, cur).netPerHour };
 }

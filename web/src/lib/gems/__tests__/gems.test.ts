@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { installPlayerStorage } from "./fixtures";
 import { BOMB_PARAM_KEYS, mergeGemParams, readGemInputs } from "../inputs";
 import { computeGemSnapshot, type GemSnapshot } from "../model";
-import { rankGemLevers } from "../levers";
+import { planFreeChanges, rankGemLevers } from "../levers";
 import { defaultGameParameters } from "../../gemev/freebieEv";
 
 afterEach(() => vi.unstubAllGlobals());
@@ -188,5 +188,21 @@ describe("levers", () => {
     expect(g.costGems).toBe(1000);
     expect(g.paybackHours).toBeCloseTo(1000 / g.deltaNetPerHour, 9);
     expect(l.find((x) => x.id === "jackpot_1pct")!.costGems).toBeNull();
+  });
+});
+
+describe("planFreeChanges", () => {
+  it("applies free changes in sequence without contradicting itself", () => {
+    installPlayerStorage();
+    const inputs = readGemInputs();
+    vi.unstubAllGlobals();
+    const plan = planFreeChanges(inputs, { bombCycle: "early" });
+    const ids = plan.steps.map((s) => s.id);
+    expect(ids[0]).toBe("bomb_cycle");
+    // Once the cycle is Late, Frogger's fuel pays for itself, so the plan must not unfuel it.
+    expect(ids).not.toContain("fuel_frogger");
+    expect(plan.finalOverrides.bombCycle).toBe("late");
+    expect(plan.netAfter).toBeGreaterThan(plan.netBefore);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 });

@@ -1,1 +1,33 @@
 /* Gems page styles (gems prefix). Shared fv2 classes come from ../fishingv2/fishingv2.css. */
+
+/* ---- Drones & Lootbug (gemsDr) ---- */
+.gemsDrCard { display: flex; flex-direction: column; gap: 8px; }
+.gemsDrHead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; }
+.gemsDrName { font-weight: 700; font-size: 16px; }
+.gemsDrStats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; text-align: center; }
+.gemsDrStat { border: 1px solid var(--border); padding: 6px 2px; min-width: 0; }
+.gemsDrStatVal { font-weight: 700; font-size: 15px; }
+.gemsDrStatLbl { font-size: 11px; color: var(--muted); }
+.gemsDrVerdict { margin: 0; font-size: 14px; line-height: 1.4; }
+.gemsDrNote { margin: 0; font-size: 12px; color: var(--muted); line-height: 1.4; }
+.gemsDrToggles { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.gemsDrCheck { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; cursor: pointer; }
+.gemsDrCheck input { width: 20px; height: 20px; margin: 0; }
+.gemsDrReset { min-height: 44px; padding: 0 12px; background: transparent; color: var(--accent); border: 1px solid var(--border); font: inherit; cursor: pointer; }
+.gemsDrList { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.gemsDrRow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; }
+.gemsDrRowMain { flex: 1 1 200px; min-width: 0; }
+.gemsDrSwaps { margin: 0; padding-left: 18px; font-size: 13px; }
+
+/* ---- Routine (gemsRt) ---- */
+.gemsRtBig { font-size: 20px; font-weight: 700; margin: 0; }
+.gemsRtRow { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 14px; }
+.gemsRtTableWrap { overflow-x: auto; max-width: 100%; }
+.gemsRtTable { width: 100%; border-collapse: collapse; font-size: 13px; }
+.gemsRtTable th, .gemsRtTable td { text-align: right; padding: 4px 6px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.gemsRtTable th:first-child, .gemsRtTable td:first-child { text-align: left; }
+.gemsRtCmp { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.gemsRtCmpBox { border: 1px solid var(--border); padding: 8px; min-width: 0; }
+.gemsRtCmpBest { border-color: var(--good); }
+.gemsRtList { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.gemsRtToday { font-size: 14px; line-height: 1.6; margin: 0; }

@@ -27,3 +27,13 @@ describe("importStats gem mappings", () => {
     expect(rep.notes.join(" ")).not.toMatch(/Freebie gems \(base\) is not imported/);
   });
 });
+
+describe("importStats drone fuel mappings", () => {
+  it("maps the coal fuel duration multiplier and save chance onto the Drone save", () => {
+    const store = stubStorage();
+    applyStatsImport({ coal_fuel_duration_multi: 2.0110960800000002, coal_fuel_save_chance: 26.6, elixir_fuel_grade: 15 }, null);
+    const drone = JSON.parse(store["obeliskfarm:web:drone_elixir_save.json:v9"]!);
+    expect(drone.fuelDurationUpgradeLevel).toBeCloseTo(101.1096, 3);
+    expect(drone.fuelSaveChanceUpgradeLevel).toBeCloseTo(26.6, 10);
+  });
+});
